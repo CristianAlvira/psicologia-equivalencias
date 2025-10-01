@@ -8,7 +8,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { TipoDocumento } from '../enums/tipo-documento.enum';
 import { Rol } from './../../roles/entities/rol.entity';
 import { UsuarioTokenFcm } from '../../auth/entities/usuario_token_fcm.entity';
 
@@ -21,10 +20,7 @@ export class Usuario {
   nombres: string;
 
   @Column({ type: 'varchar', length: 100 })
-  primer_apellido: string;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  segundo_apellido?: string;
+  apellidos: string;
 
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
@@ -35,14 +31,8 @@ export class Usuario {
   @Column({ type: 'boolean', default: true })
   estado: boolean;
 
-  @Column({ type: 'enum', enum: TipoDocumento })
-  tipo_documento: TipoDocumento;
-
   @Column({ type: 'varchar', length: 50 })
-  num_documento: string;
-
-  @Column({ type: 'varchar', length: 20 })
-  num_celular: string;
+  codigo_estudiantil: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

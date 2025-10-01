@@ -1,3 +1,4 @@
+import { RolesDbValues } from '@/common/enums/roles.enum';
 import { Rol } from '@/roles/entities/rol.entity';
 import { Permiso } from '@permisos/entities/permiso.entity';
 import { DataSource } from 'typeorm';
@@ -25,30 +26,24 @@ export class RolesSeed implements Seeder {
       return;
     }
 
-    // const driverPermissions: Permiso[] = permissions.filter(
+    //EJEMPLO PARA CREAR ROLES CON PERMISOS PREDETERMINADOS
+    // const dueñoParkingPermissions: Permiso[] = permissions.filter(
     //   (p) =>
-    //     p.nombre_permiso === 'ver_rol' ||
-    //     p.nombre_permiso === 'ver_permiso' ||
-    //     p.nombre_permiso === 'ver_usuario' ||
-    //     p.nombre_permiso === 'ver_vehiculo' ||
-    //     p.nombre_permiso === 'eliminar_notificaciones',
+    //     p.nombre_permiso === 'ver_parqueadero' ||
+    //     p.nombre_permiso === 'ver_estacionamientos' ||
+    //     p.nombre_permiso === 'ver_facturas',
     // );
 
     const roles: Partial<Rol>[] = [
       {
-        nombre_rol: 'admin',
+        nombre_rol: RolesDbValues.ADMIN,
         descripcion_rol: 'Administrador del sistema',
         permisos: permissions,
       },
-      // {
-      //   nombre_rol: 'conductor',
-      //   descripcion_rol: 'Conductor de vehiculos',
-      //   permisos: driverPermissions,
-      // },
     ];
 
     await rolesRepository.save(roles);
 
-    console.log(`Creados ${roles.length} permisos`);
+    console.log(`Creados ${roles.length} roles`);
   }
 }

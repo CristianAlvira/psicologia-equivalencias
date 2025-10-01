@@ -14,7 +14,7 @@ export class UserAdminSeed implements Seeder {
     const roleRepository = dataSource.getRepository(Rol);
 
     const validation = await userRepository.findOneBy({
-      email: 'admin@localhost.com',
+      email: 'admin@admin.com',
     });
 
     if (validation) {
@@ -22,15 +22,17 @@ export class UserAdminSeed implements Seeder {
       return;
     }
 
-    const roleAdmin = await roleRepository.findOneBy({ nombre_rol: 'admin' });
+    const roleAdmin = await roleRepository.findOneBy({
+      nombre_rol: 'administrador',
+    });
 
     if (!roleAdmin) {
-      console.log('No se encontro el rol admin, omitiendo...');
+      console.log('No se encontro el rol administrador, omitiendo...');
       return;
     }
 
     const usuario: Partial<Usuario> = {
-      email: 'admin@localhost.com',
+      email: 'admin@admin.com',
       password: bcrypt.hashSync('admin', 10),
       roles: [roleAdmin],
       nombres: 'Administrador',

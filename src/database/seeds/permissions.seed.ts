@@ -57,6 +57,7 @@ export class PermissionsSeed implements Seeder {
         'ver_usuario',
         'editar_usuarios',
         'eliminar_usuarios',
+        'admin_general',
       ],
 
       estudiantes: ['estudiante_general'],

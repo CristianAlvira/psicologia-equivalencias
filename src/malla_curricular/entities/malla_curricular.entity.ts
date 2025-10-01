@@ -1,3 +1,4 @@
+import { Curso } from '@/cursos/entities/curso.entity';
 import { Programa } from '@/programas/entities/programa.entity';
 import {
   Column,
@@ -7,6 +8,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('mallas_curriculares')
@@ -26,6 +28,11 @@ export class MallaCurricular {
   })
   @JoinColumn({ name: 'programa_id' })
   programa: Programa;
+
+  @OneToMany(() => Curso, (curso) => curso.mallaCurricular, {
+    cascade: ['remove'], // Solo cascade remove, no insert/update automático
+  })
+  cursos: Curso[];
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

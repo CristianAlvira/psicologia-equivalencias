@@ -60,7 +60,7 @@ export class PermissionsSeed implements Seeder {
         'admin_general',
       ],
 
-      estudiantes: ['estudiante_general'],
+      // estudiantes: ['estudiante_general'],
     };
 
     let totalPermisosCreados = 0;

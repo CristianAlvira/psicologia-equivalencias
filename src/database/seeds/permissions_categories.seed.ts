@@ -31,7 +31,7 @@ export class PermissionsCategoriesSeed implements Seeder {
       'usuarios',
 
       // Estudiantes
-      'estudiantes',
+      // 'estudiantes',
     ];
 
     const mappedCategories = categorias.map((categoria) => ({

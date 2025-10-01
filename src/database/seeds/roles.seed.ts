@@ -27,9 +27,9 @@ export class RolesSeed implements Seeder {
     }
 
     //EJEMPLO PARA CREAR ROLES CON PERMISOS PREDETERMINADOS
-    const estudiantePermissions: Permiso[] = permissions.filter(
-      (p) => p.nombre_permiso === 'estudiante_general',
-    );
+    // const estudiantePermissions: Permiso[] = permissions.filter(
+    //   (p) => p.nombre_permiso === 'estudiante_general',
+    // );
 
     const roles: Partial<Rol>[] = [
       {
@@ -37,11 +37,11 @@ export class RolesSeed implements Seeder {
         descripcion_rol: 'Administrador del sistema',
         permisos: permissions,
       },
-      {
-        nombre_rol: RolesDbValues.ESTUDIANTE,
-        descripcion_rol: 'Estudiante del sistema',
-        permisos: estudiantePermissions,
-      },
+      // {
+      //   nombre_rol: RolesDbValues.ESTUDIANTE,
+      //   descripcion_rol: 'Estudiante del sistema',
+      //   permisos: estudiantePermissions,
+      // },
     ];
 
     await rolesRepository.save(roles);

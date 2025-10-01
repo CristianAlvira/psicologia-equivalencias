@@ -22,17 +22,17 @@ export class Usuario {
   @Column({ type: 'varchar', length: 100 })
   apellidos: string;
 
-  @Column({ type: 'varchar', length: 150, unique: true })
-  email: string;
+  @Column({ type: 'varchar', length: 150, unique: true, nullable: true })
+  email?: string;
 
-  @Column({ type: 'varchar', length: 100, select: false })
-  password: string;
+  @Column({ type: 'varchar', length: 100, select: false, nullable: true })
+  password?: string;
 
   @Column({ type: 'boolean', default: true })
   estado: boolean;
 
-  @Column({ type: 'varchar', length: 50 })
-  codigo_estudiantil: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  codigo_estudiantil?: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

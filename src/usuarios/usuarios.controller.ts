@@ -20,6 +20,7 @@ import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Usuario } from './entities/usuario.entity';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateEstudianteDto } from './dto/create-estudiante';
 
 @ApiBearerAuth()
 @Controller('usuarios')
@@ -32,6 +33,12 @@ export class UsuariosController {
   @RequirePermissions('crear_usuarios')
   create(@Body() createUsuarioDto: CreateUsuarioDto) {
     return this.usuariosService.create(createUsuarioDto);
+  }
+
+  @ApiOperation({ summary: 'Registrar un nuevo estudiante' })
+  @Post('estudiantes')
+  createStudent(@Body() createEstudianteDto: CreateEstudianteDto) {
+    return this.usuariosService.createEstudiante(createEstudianteDto);
   }
 
   @Get()

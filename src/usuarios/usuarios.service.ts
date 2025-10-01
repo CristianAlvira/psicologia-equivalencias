@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Usuario } from './entities/usuario.entity';
@@ -8,6 +12,7 @@ import { Rol } from '@/roles/entities/rol.entity';
 import { FilterUsuariosQueryDto } from './dto/filter-usuarios-query.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateEstudianteDto } from './dto/create-estudiante';
 
 @Injectable()
 export class UsuariosService {
@@ -19,7 +24,20 @@ export class UsuariosService {
   ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto) {
-    const hashedPassword = bcrypt.hashSync(createUsuarioDto.password, 10);
+    const hashedPassword = createUsuarioDto.password
+      ? bcrypt.hashSync(createUsuarioDto.password, 10)
+      : undefined;
+
+    // Verificar si el email ya está registrado
+    const emailExists = await this.usuarioRepository.findOne({
+      where: { email: createUsuarioDto.email },
+    });
+
+    if (emailExists) {
+      throw new ConflictException(
+        `El email ${createUsuarioDto.email} ya está en uso`,
+      );
+    }
 
     // Buscar las entidades de roles correspondientes para asignarlas
     const roles =
@@ -40,6 +58,35 @@ export class UsuariosService {
     void password;
 
     return savedUserWithoutPassword;
+  }
+
+  async createEstudiante(createEstudianteDto: CreateEstudianteDto) {
+    const studentExists = await this.usuarioRepository.findOne({
+      where: { codigo_estudiantil: createEstudianteDto.codigo_estudiantil },
+    });
+
+    if (studentExists) {
+      throw new NotFoundException(
+        `El codigo estudiantil ${createEstudianteDto.codigo_estudiantil} ya está registrado`,
+      );
+    }
+
+    // Buscar el rol de estudiante por defecto (ID 2)
+    const rolEstudiante = await this.rolRepository.findOne({
+      where: { id: 2 },
+    });
+
+    const estudianteData = {
+      nombres: createEstudianteDto.nombres,
+      apellidos: createEstudianteDto.apellidos,
+      codigo_estudiantil: createEstudianteDto.codigo_estudiantil,
+      estado: createEstudianteDto.estado ?? true,
+      roles: rolEstudiante ? [rolEstudiante] : [],
+      // No incluir password ni email para estudiantes
+    };
+
+    const estudiante = this.usuarioRepository.create(estudianteData);
+    return await this.usuarioRepository.save(estudiante);
   }
 
   async findAll(filterDto: FilterUsuariosQueryDto) {

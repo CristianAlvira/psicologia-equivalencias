@@ -58,6 +58,8 @@ export class PermissionsSeed implements Seeder {
         'editar_usuarios',
         'eliminar_usuarios',
       ],
+
+      estudiantes: ['estudiante_general'],
     };
 
     let totalPermisosCreados = 0;

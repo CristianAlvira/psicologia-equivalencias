@@ -40,7 +40,7 @@ export class CreateEstudianteDto {
   })
   codigo_estudiantil: string;
 
-  @ApiProperty({ isArray: true, example: [1] })
+  @ApiProperty({ isArray: true, example: [2] })
   @IsArray({ message: 'Los roles deben ser un arreglo' })
   @ArrayMinSize(1, { message: 'Debe asignar al menos un rol' })
   @IsInt({ each: true, message: 'Cada rol debe ser un número entero' })

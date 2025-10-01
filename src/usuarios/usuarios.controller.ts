@@ -26,9 +26,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
-  @ApiOperation({
-    summary: 'Crear usuario. si es rol "conductor" debe crear el anexo ',
-  })
+  @ApiOperation({ summary: 'Crear un nuevo usuario' })
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('crear_usuarios')

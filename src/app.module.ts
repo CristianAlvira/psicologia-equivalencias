@@ -9,6 +9,9 @@ import { RolesModule } from './roles/roles.module';
 import { PermisosModule } from './permisos/permisos.module';
 import { AuthModule } from './auth/auth.module';
 import { CategoriasPermisosModule } from './categorias_permisos/categorias_permisos.module';
+import { ProgramasModule } from './programas/programas.module';
+import { MallaCurricularModule } from './malla_curricular/malla_curricular.module';
+import { CursosModule } from './cursos/cursos.module';
 
 @Module({
   imports: [
@@ -42,6 +45,12 @@ import { CategoriasPermisosModule } from './categorias_permisos/categorias_permi
     AuthModule,
 
     CategoriasPermisosModule,
+
+    ProgramasModule,
+
+    MallaCurricularModule,
+
+    CursosModule,
   ],
   providers: [
     {

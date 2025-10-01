@@ -1,6 +1,5 @@
 import { Rol } from '@/roles/entities/rol.entity';
 import { Usuario } from '@/usuarios/entities/usuario.entity';
-import { TipoDocumento } from '@/usuarios/enums/tipo-documento.enum';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Seeder, SeederFactoryManager } from 'typeorm-extension';
@@ -36,11 +35,8 @@ export class UserAdminSeed implements Seeder {
       password: bcrypt.hashSync('admin', 10),
       roles: [roleAdmin],
       nombres: 'Administrador',
-      primer_apellido: 'Admin',
-      num_celular: '1234567890',
-      num_documento: '1234567890',
+      apellidos: 'Admin',
       estado: true,
-      tipo_documento: TipoDocumento.CC,
     };
 
     await userRepository.save(usuario);

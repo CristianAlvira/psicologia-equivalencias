@@ -25,7 +25,7 @@ export class AuthService {
 
   async validateUser(credential: string, password: string): Promise<any> {
     const user = await this.usuarioRepository.findOne({
-      where: [{ email: credential }, { num_celular: credential }],
+      where: [{ email: credential }],
       relations: ['roles', 'roles.permisos'],
       select: ['id', 'nombres', 'email', 'password', 'estado'],
     });
@@ -36,6 +36,12 @@ export class AuthService {
       throw new UnauthorizedException(
         'La cuenta no esta activa, por favor contacte al administrador',
       );
+
+    // Verificar que el usuario tenga contraseña antes de compararla
+    if (!user.password) {
+      // Si el usuario no tiene contraseña (como estudiantes), no puede hacer login
+      return null;
+    }
 
     if (await bcrypt.compare(password, user.password)) {
       const { password: _, ...result } = user;
@@ -49,6 +55,13 @@ export class AuthService {
     remember_me: boolean = false,
     ip_address?: string,
   ): Promise<LoginResponseDto> {
+    // Verificar que el usuario tenga email antes de proceder
+    if (!user.email) {
+      throw new UnauthorizedException(
+        'Este tipo de usuario no puede iniciar sesión',
+      );
+    }
+
     const payload = {
       email: user.email,
       sub: user.id,

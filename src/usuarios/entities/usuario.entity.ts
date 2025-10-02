@@ -51,5 +51,5 @@ export class Usuario {
     joinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'rol_id', referencedColumnName: 'id' },
   })
-  roles: Rol[];
+  roles?: Rol[];
 }

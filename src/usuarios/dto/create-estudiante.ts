@@ -4,9 +4,6 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  IsArray,
-  ArrayMinSize,
-  IsInt,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -39,11 +36,4 @@ export class CreateEstudianteDto {
     message: 'El codigo estudiantil no puede superar los 50 caracteres',
   })
   codigo_estudiantil: string;
-
-  @ApiProperty({ isArray: true, example: [2] })
-  @IsArray({ message: 'Los roles deben ser un arreglo' })
-  @ArrayMinSize(1, { message: 'Debe asignar al menos un rol' })
-  @IsInt({ each: true, message: 'Cada rol debe ser un número entero' })
-  @IsNotEmpty()
-  roles: number[];
 }

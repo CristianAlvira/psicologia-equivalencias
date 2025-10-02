@@ -87,9 +87,9 @@ export class RolesService {
       throw new NotFoundException(`Usuario con ID ${usuario_id} no encontrado`);
     }
 
-    const existingRoleIds = usuario.roles.map((r) => r.id);
+    const existingRoleIds = usuario.roles?.map((r) => r.id);
 
-    const newRoleIds = role_ids.filter((id) => !existingRoleIds.includes(id));
+    const newRoleIds = role_ids.filter((id) => !existingRoleIds?.includes(id));
 
     if (newRoleIds.length === 0) {
       throw new BadRequestException(
@@ -109,7 +109,7 @@ export class RolesService {
       );
     }
 
-    usuario.roles = [...usuario.roles, ...newRoles];
+    usuario.roles = [...(usuario.roles || []), ...newRoles];
 
     return await this.usuarioRepository.save(usuario);
   }
@@ -126,7 +126,9 @@ export class RolesService {
       throw new NotFoundException(`Usuario con ID ${usuario_id} no encontrado`);
     }
 
-    usuario.roles = usuario.roles.filter((role) => !role_ids.includes(role.id));
+    usuario.roles = usuario.roles?.filter(
+      (role) => !role_ids.includes(role.id),
+    );
 
     return await this.usuarioRepository.save(usuario);
   }

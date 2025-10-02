@@ -28,8 +28,8 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('No tienes roles asignados');
     }
 
-    const userRoles = (user as Usuario).roles.map((rol) => rol.nombre_rol);
-    const hasRole = requiredRoles.some((role) => userRoles.includes(role));
+    const userRoles = (user as Usuario).roles?.map((rol) => rol.nombre_rol);
+    const hasRole = requiredRoles.some((role) => userRoles?.includes(role));
 
     if (!hasRole) {
       throw new ForbiddenException(

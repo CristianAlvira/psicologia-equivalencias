@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, MoreThan, Repository } from 'typeorm';
+import { LessThan, MoreThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 import { LoginResponseDto } from './dto/login-response.dto';
@@ -66,7 +66,7 @@ export class AuthService {
       email: user.email,
       sub: user.id,
       roles: user.roles?.map((r) => r.nombre_rol) || [],
-      permisos: this.extractPermisos(user.roles),
+      permisos: this.extractPermisos(user.roles || []),
     };
 
     const accessTokenExpiry = remember_me ? '1h' : '15m';
@@ -109,7 +109,7 @@ export class AuthService {
 
     return {
       ...user,
-      permisos: this.extractPermisos(user.roles),
+      permisos: this.extractPermisos(user.roles || []),
     };
   }
 
@@ -200,7 +200,7 @@ export class AuthService {
         email: user.email,
         sub: user.id,
         roles: user.roles?.map((r) => r.nombre_rol) || [],
-        permisos: this.extractPermisos(user.roles),
+        permisos: this.extractPermisos(user.roles || []),
       };
 
       const accessTokenExpiry = validToken.remember_me ? '1h' : '15m';

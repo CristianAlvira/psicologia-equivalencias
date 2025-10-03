@@ -18,6 +18,6 @@ export class SeleccionEstudiante {
     onDelete: 'CASCADE',
     eager: true,
   })
-  @JoinColumn({ name: 'estudiante_id' })
+  @JoinColumn({ name: 'curso_antiguo_id' })
   curso_antiguo: Curso;
 }

@@ -12,6 +12,7 @@ import { CategoriasPermisosModule } from './categorias_permisos/categorias_permi
 import { ProgramasModule } from './programas/programas.module';
 import { MallaCurricularModule } from './malla_curricular/malla_curricular.module';
 import { CursosModule } from './cursos/cursos.module';
+import { SeleccionEstudianteModule } from './seleccion-estudiante/seleccion-estudiante.module';
 
 @Module({
   imports: [
@@ -51,6 +52,8 @@ import { CursosModule } from './cursos/cursos.module';
     MallaCurricularModule,
 
     CursosModule,
+
+    SeleccionEstudianteModule,
   ],
   providers: [
     {

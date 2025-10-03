@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Rol } from './../../roles/entities/rol.entity';
 import { UsuarioTokenFcm } from '../../auth/entities/usuario_token_fcm.entity';
+import { SeleccionEstudiante } from '@/seleccion-estudiante/entities/seleccion-estudiante.entity';
 
 @Entity('usuarios')
 export class Usuario {
@@ -52,4 +53,10 @@ export class Usuario {
     inverseJoinColumn: { name: 'rol_id', referencedColumnName: 'id' },
   })
   roles?: Rol[];
+
+  @OneToMany(
+    () => SeleccionEstudiante,
+    (seleccionEstudiante) => seleccionEstudiante.estudiante,
+  )
+  selecciones_estudiantes: SeleccionEstudiante[];
 }

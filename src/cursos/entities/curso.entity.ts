@@ -4,11 +4,13 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Semestre } from '../enums/semestre.enum';
 import { MallaCurricular } from '@/malla_curricular/entities/malla_curricular.entity';
+import { SeleccionEstudiante } from '@/seleccion-estudiante/entities/seleccion-estudiante.entity';
 
 @Entity('cursos')
 export class Curso {
@@ -30,6 +32,12 @@ export class Curso {
   })
   @JoinColumn({ name: 'malla_curricular_id' })
   mallaCurricular: MallaCurricular;
+
+  @OneToMany(
+    () => SeleccionEstudiante,
+    (seleccionEstudiante) => seleccionEstudiante.curso_antiguo,
+  )
+  selecciones_estudiantes: SeleccionEstudiante[];
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

@@ -26,6 +26,9 @@ export class Curso {
   @Column({ type: 'enum', enum: Semestre })
   semestre: Semestre;
 
+  @Column({ name: 'malla_curricular_id' })
+  mallaCurricularId: number;
+
   @ManyToOne(() => MallaCurricular, (malla) => malla.cursos, {
     onDelete: 'CASCADE',
     eager: true,

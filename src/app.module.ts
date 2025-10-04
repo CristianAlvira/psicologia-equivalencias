@@ -13,6 +13,7 @@ import { ProgramasModule } from './programas/programas.module';
 import { MallaCurricularModule } from './malla_curricular/malla_curricular.module';
 import { CursosModule } from './cursos/cursos.module';
 import { SeleccionEstudianteModule } from './seleccion-estudiante/seleccion-estudiante.module';
+import { EquivalenciasModule } from './equivalencias/equivalencias.module';
 
 @Module({
   imports: [
@@ -54,6 +55,8 @@ import { SeleccionEstudianteModule } from './seleccion-estudiante/seleccion-estu
     CursosModule,
 
     SeleccionEstudianteModule,
+
+    EquivalenciasModule,
   ],
   providers: [
     {

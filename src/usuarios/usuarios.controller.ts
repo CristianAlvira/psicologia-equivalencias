@@ -62,23 +62,14 @@ export class UsuariosController {
     return this.usuariosService.findOne(+id);
   }
 
-  // @Get('estado/:estado')
-  // @UseGuards(JwtAuthGuard, PermissionsGuard)
-  // @RequirePermissions('usuarios:read')
-  // findByEstado(@Param('estado') estado: string) {
-  //   // Convertimos el string que nos pasan a boolean
-  //   const estadoBool = estado === 'true';
-  //   return this.usuariosService.findByEstado(estadoBool);
-  // }
-
-  // @Get('rol/:rol')
-  // @UseGuards(JwtAuthGuard, PermissionsGuard)
-  // @RequirePermissions('usuarios:read')
-  // findByRol(@Param('rol') rol: string) {
-  //   return this.usuariosService.findByRol(rol);
-  // }
-
-  // TODO: Crear filtro por si el usuario tiene un vehiculo asignado
+  @Get('codigo_estudiantil/:codigo_estudiantil')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('ver_usuario')
+  findOneByCodigoEstudiante(
+    @Param('codigo_estudiantil') codigo_estudiantil: string,
+  ) {
+    return this.usuariosService.findOneByCodigoEstudiante(codigo_estudiantil);
+  }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)

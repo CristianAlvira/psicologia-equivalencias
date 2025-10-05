@@ -157,12 +157,16 @@ export class UsuariosService {
     return usuarioWithoutPassword;
   }
 
-  async findOneByEmail(email: string) {
-    const usuario = await this.usuarioRepository
-      .createQueryBuilder('usuario')
-      .leftJoinAndSelect('usuario.roles', 'roles')
-      .where('usuario.email = :email', { email })
-      .getOne();
+  async findOneByCodigoEstudiante(codigo_estudiantil: string) {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { codigo_estudiantil },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(
+        `Usuario con código estudiantil ${codigo_estudiantil} no encontrado`,
+      );
+    }
 
     return usuario;
   }

@@ -148,6 +148,12 @@ export class EquivalenciasService {
         resultado[cursoId] = {
           estado: 'NO_APLICA',
           observacion: 'No existe regla de homologación para este curso.',
+          cursoNuevo: {
+            id: cursoNuevo.id,
+            nombre: cursoNuevo.nombre,
+            creditos: cursoNuevo.creditos,
+            semestre: cursoNuevo.semestre,
+          },
           cursosAntiguosPresentes: [],
           cursosAntiguosFaltantes: [],
         };
@@ -190,6 +196,12 @@ export class EquivalenciasService {
         resultado[cursoId] = {
           estado: 'HOMOLOGADO',
           observacion: `Homologado por: ${cursosNombres.join(', ')}.`,
+          cursoNuevo: {
+            id: cursoNuevo.id,
+            nombre: cursoNuevo.nombre,
+            creditos: cursoNuevo.creditos,
+            semestre: cursoNuevo.semestre,
+          },
           grupoId: grupoConCursoNuevo.id,
           cursosAntiguosPresentes,
           cursosAntiguosFaltantes: [],
@@ -227,6 +239,12 @@ export class EquivalenciasService {
         resultado[cursoId] = {
           estado: 'INCOMPLETO',
           observacion,
+          cursoNuevo: {
+            id: cursoNuevo.id,
+            nombre: cursoNuevo.nombre,
+            creditos: cursoNuevo.creditos,
+            semestre: cursoNuevo.semestre,
+          },
           grupoId: grupoConCursoNuevo.id,
           cursosAntiguosPresentes,
           cursosAntiguosFaltantes,
@@ -391,5 +409,48 @@ export class EquivalenciasService {
         totalCursosNuevos: ultimosResultados.length,
       },
     };
+  }
+
+  /**
+   * Verifica si un estudiante ya tiene resultados de equivalencia registrados
+   * @param estudianteId ID del estudiante
+   * @returns boolean - true si tiene equivalencias, false si no
+   */
+  async estudianteTieneEquivalencias(estudianteId: number): Promise<boolean> {
+    const count = await this.resultadoHomologacionRepository.count({
+      where: { estudianteId },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Verifica si un estudiante tiene equivalencias para una combinación específica de mallas
+   * @param estudianteId ID del estudiante
+   * @param mallaAntiguaId ID de la malla antigua
+   * @param mallaNuevaId ID de la malla nueva
+   * @returns boolean - true si tiene equivalencias para esas mallas, false si no
+   */
+  async estudianteTieneEquivalenciasParaMallas(
+    estudianteId: number,
+    mallaAntiguaId: number,
+    mallaNuevaId: number,
+  ): Promise<boolean> {
+    const count = await this.resultadoHomologacionRepository.count({
+      where: {
+        estudianteId,
+        mallaAntiguaId,
+        mallaNuevaId,
+      },
+    });
+    return count > 0;
+  }
+
+  findEquivalenciasByEstudiante(
+    estudianteId: number,
+  ): Promise<ResultadoHomologacion[]> {
+    return this.resultadoHomologacionRepository.find({
+      where: { estudianteId },
+      relations: ['cursoNuevo', 'grupo', 'mallaAntigua', 'mallaNueva'],
+    });
   }
 }

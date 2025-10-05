@@ -105,4 +105,60 @@ export class EquivalenciasController {
   async getResumen(@Param('estudianteId') estudianteId: string) {
     return this.equivalenciasService.getResumenEstudiante(+estudianteId);
   }
+
+  @Get('verificar/:estudianteId')
+  @ApiOperation({ summary: 'Verificar si un estudiante tiene equivalencias registradas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Verificación completada',
+    schema: {
+      type: 'object',
+      properties: {
+        tieneEquivalencias: { type: 'boolean' },
+        estudianteId: { type: 'number' },
+      },
+    },
+  })
+  async verificarEquivalenciasEstudiante(@Param('estudianteId') estudianteId: string) {
+    const tieneEquivalencias = await this.equivalenciasService.estudianteTieneEquivalencias(+estudianteId);
+    return {
+      estudianteId: +estudianteId,
+      tieneEquivalencias,
+    };
+  }
+
+  @Get('verificar/:estudianteId/:mallaAntiguaId/:mallaNuevaId')
+  @ApiOperation({ 
+    summary: 'Verificar si un estudiante tiene equivalencias para mallas específicas' 
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Verificación completada',
+    schema: {
+      type: 'object',
+      properties: {
+        tieneEquivalencias: { type: 'boolean' },
+        estudianteId: { type: 'number' },
+        mallaAntiguaId: { type: 'number' },
+        mallaNuevaId: { type: 'number' },
+      },
+    },
+  })
+  async verificarEquivalenciasParaMallas(
+    @Param('estudianteId') estudianteId: string,
+    @Param('mallaAntiguaId') mallaAntiguaId: string,
+    @Param('mallaNuevaId') mallaNuevaId: string,
+  ) {
+    const tieneEquivalencias = await this.equivalenciasService.estudianteTieneEquivalenciasParaMallas(
+      +estudianteId,
+      +mallaAntiguaId,
+      +mallaNuevaId,
+    );
+    return {
+      estudianteId: +estudianteId,
+      mallaAntiguaId: +mallaAntiguaId,
+      mallaNuevaId: +mallaNuevaId,
+      tieneEquivalencias,
+    };
+  }
 }

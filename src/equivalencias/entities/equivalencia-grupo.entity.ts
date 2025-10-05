@@ -11,7 +11,6 @@ import {
 import { MallaCurricular } from '@/malla_curricular/entities/malla_curricular.entity';
 import { EquivalenciaItem } from './equivalencia-item.entity';
 
-
 @Entity('equivalencia_grupos')
 export class EquivalenciaGrupo {
   @PrimaryGeneratedColumn()

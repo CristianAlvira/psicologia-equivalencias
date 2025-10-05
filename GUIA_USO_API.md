@@ -204,6 +204,12 @@ Content-Type: application/json
     "101": {
       "estado": "HOMOLOGADO",
       "observacion": "Homologado por: Introducción a la Psicología.",
+      "cursoNuevo": {
+        "id": 101,
+        "nombre": "Fundamentos de Psicología",
+        "creditos": 4,
+        "semestre": "PRIMERO"
+      },
       "grupoId": 1,
       "cursosAntiguosPresentes": [1],
       "cursosAntiguosFaltantes": []
@@ -211,6 +217,12 @@ Content-Type: application/json
     "104": {
       "estado": "INCOMPLETO", 
       "observacion": "Tienes: Electiva I. Te falta: Electiva II.",
+      "cursoNuevo": {
+        "id": 104,
+        "nombre": "Electivas Integradas",
+        "creditos": 3,
+        "semestre": "PRIMERO"
+      },
       "grupoId": 4,
       "cursosAntiguosPresentes": [4],
       "cursosAntiguosFaltantes": [8]
@@ -218,6 +230,12 @@ Content-Type: application/json
     "102": {
       "estado": "NO_APLICA",
       "observacion": "No existe regla de homologación para este curso.",
+      "cursoNuevo": {
+        "id": 102,
+        "nombre": "Metodología de Investigación",
+        "creditos": 3,
+        "semestre": "SEGUNDO"
+      },
       "cursosAntiguosPresentes": [],
       "cursosAntiguosFaltantes": []
     }
@@ -346,7 +364,8 @@ Malla Curricular 2025 - Resultados de Homologación
 🟡 Electivas Integradas (3 créditos) 
    💡 Tienes: Electiva I. Te falta: Electiva II
 
-⚪ Matemáticas Aplicadas (3 créditos)
+📚 SEGUNDO SEMESTRE
+⚪ Metodología de Investigación (3 créditos)
    💡 No existe regla de homologación para este curso
 
 📊 RESUMEN

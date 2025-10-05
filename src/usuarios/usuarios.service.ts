@@ -13,6 +13,7 @@ import { FilterUsuariosQueryDto } from './dto/filter-usuarios-query.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateEstudianteDto } from './dto/create-estudiante';
+import { EquivalenciasService } from '@/equivalencias/equivalencias.service';
 
 @Injectable()
 export class UsuariosService {
@@ -21,6 +22,8 @@ export class UsuariosService {
     private readonly usuarioRepository: Repository<Usuario>,
     @InjectRepository(Rol)
     private readonly rolRepository: Repository<Rol>,
+
+    private readonly equivalenciasService: EquivalenciasService,
   ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto) {
@@ -61,14 +64,30 @@ export class UsuariosService {
   }
 
   async createEstudiante(createEstudianteDto: CreateEstudianteDto) {
+    // Verificar si ya existe un usuario con ese código estudiantil
     const studentExists = await this.usuarioRepository.findOne({
       where: { codigo_estudiantil: createEstudianteDto.codigo_estudiantil },
     });
 
     if (studentExists) {
-      throw new NotFoundException(
-        `El codigo estudiantil ${createEstudianteDto.codigo_estudiantil} ya está registrado`,
-      );
+      // Si el estudiante ya existe, verificar si tiene equivalencias
+      const tieneEquivalencias =
+        await this.equivalenciasService.estudianteTieneEquivalencias(
+          studentExists.id,
+        );
+
+      if (tieneEquivalencias) {
+        // throw new ConflictException(
+        //   `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
+        // );
+        return {
+          message: `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
+          estudiante_id: studentExists.id,
+        };
+      }
+
+      // Si existe pero no tiene equivalencias, devolver el estudiante existente
+      return studentExists;
     }
 
     // Buscar el rol de estudiante por defecto (ID 2)

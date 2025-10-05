@@ -109,24 +109,23 @@ export class UsuariosService {
   }
 
   async findAll(filterDto: FilterUsuariosQueryDto) {
-    const { limit = 10, offset = 0, estado, rol } = filterDto;
+    const { limit = 10, offset = 0, estado, estudiante } = filterDto;
     const skip = offset;
 
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
-      .leftJoinAndSelect('usuario.roles', 'roles')
       .skip(skip);
 
     if (limit !== -1) {
       queryBuilder.take(limit);
     }
 
-    if (rol) {
-      queryBuilder.andWhere('roles.nombre_rol ILIKE :rol', { rol: `%${rol}%` });
+    if (estado !== undefined) {
+      queryBuilder.andWhere('usuario.estado = :estado', { estado });
     }
 
-    if (estado !== undefined) {
-      queryBuilder.andWhere('usuario.isActive = :estado', { estado });
+    if (estudiante) {
+      queryBuilder.andWhere('usuario.email IS NULL');
     }
 
     const [usuarios, total] = await queryBuilder.getManyAndCount();

@@ -1,21 +1,34 @@
-import { Transform } from 'class-transformer';
-import { IsOptional, IsBoolean, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsOptional } from 'class-validator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class FilterUsuariosQueryDto extends PaginationDto {
-  @ApiProperty({ example: 'true', required: false })
+  @ApiProperty({
+    example: true,
+    required: false,
+    description: 'Filtrar por estado activo/inactivo del usuario',
+  })
   @IsOptional()
-  @IsBoolean({ message: 'El estado debe ser un valor booleano' })
-  //! Tal vez no sea necesario, en el main.ts se especifica la transformación explícita
-  //Necesitamos transformar desde string a Boolean
-  @Transform(({ value }): boolean | undefined =>
-    value === 'true' ? true : value === 'false' ? false : undefined,
-  )
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @Type(() => Boolean)
   estado?: boolean;
 
-  @ApiProperty({ example: 'admin', required: false })
+  @ApiProperty({
+    example: true,
+    required: false,
+    description: 'Filtrar solo estudiantes (usuarios sin email)',
+  })
   @IsOptional()
-  @IsString({ message: 'El rol debe ser un texto' })
-  rol?: string;
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @Type(() => Boolean)
+  estudiante?: boolean;
 }

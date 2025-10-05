@@ -18,6 +18,9 @@ export interface ResumenEvaluacion {
   homologados: number;
   incompletos: number;
   noAplica: number;
+  creditosCompletadosMallaAntigua: number;
+  creditosHomologadosMallaNueva: number;
+  totalCreditosMallaNueva: number;
 }
 
 export interface EvaluacionResultado {

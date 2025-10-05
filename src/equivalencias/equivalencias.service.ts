@@ -18,6 +18,7 @@ import {
 } from './dto/evaluacion-resultado.dto';
 import { GetResultadosHomologacionDto } from './dto/get-resultados-homologacion.dto';
 import { ResumenResultadosDto } from './dto/resumen-resultados.dto';
+import { ResultadosEstudianteResponse } from './dto/resultados-estudiante-response.dto';
 import { Curso } from '@/cursos/entities/curso.entity';
 import { MallaCurricular } from '@/malla_curricular/entities/malla_curricular.entity';
 
@@ -272,12 +273,20 @@ export class EquivalenciasService {
       await this.resultadoHomologacionRepository.save(resultadosParaGuardar);
     }
 
+    // Calcular créditos
+    const resumenConCreditos = await this.calcularResumenConCreditos(
+      dto,
+      cursosNuevos,
+      resultado,
+    );
+
     return {
       porCursoNuevo: resultado,
       resumen: {
         homologados,
         incompletos,
         noAplica,
+        ...resumenConCreditos,
       },
     };
   }
@@ -290,6 +299,123 @@ export class EquivalenciasService {
     });
 
     return cursos.map((curso) => curso.nombre);
+  }
+
+  private async calcularResumenConCreditos(
+    dto: EvaluarEquivalenciasDto,
+    cursosNuevos: Curso[],
+    resultado: Record<string, ResultadoCurso>,
+  ) {
+    // Calcular créditos de cursos antiguos completados
+    const cursosAntiguosCompletados = await this.cursoRepository.find({
+      where: dto.cursosAntiguosMarcados.map((id) => ({ id })),
+    });
+
+    const creditosCompletadosMallaAntigua = cursosAntiguosCompletados.reduce(
+      (total, curso) => total + curso.creditos,
+      0,
+    );
+
+    // Calcular créditos homologados en la malla nueva
+    let creditosHomologadosMallaNueva = 0;
+
+    for (const resultadoCurso of Object.values(resultado)) {
+      if (resultadoCurso.estado === 'HOMOLOGADO') {
+        creditosHomologadosMallaNueva += resultadoCurso.cursoNuevo.creditos;
+      }
+    }
+
+    // Calcular total de créditos de la malla nueva
+    const totalCreditosMallaNueva = cursosNuevos.reduce(
+      (total, curso) => total + curso.creditos,
+      0,
+    );
+
+    return {
+      creditosCompletadosMallaAntigua,
+      creditosHomologadosMallaNueva,
+      totalCreditosMallaNueva,
+    };
+  }
+
+  private async calcularResumenDesdeResultados(
+    resultados: ResultadoHomologacion[],
+    dto: GetResultadosHomologacionDto,
+  ) {
+    if (resultados.length === 0) {
+      return {
+        homologados: 0,
+        incompletos: 0,
+        noAplica: 0,
+        creditosCompletadosMallaAntigua: 0,
+        creditosHomologadosMallaNueva: 0,
+        totalCreditosMallaNueva: 0,
+      };
+    }
+
+    // Agrupar por estado para contar
+    const resumenBasico = resultados.reduce(
+      (acc, resultado) => {
+        switch (resultado.estado) {
+          case EstadoHomologacion.HOMOLOGADO:
+            acc.homologados++;
+            break;
+          case EstadoHomologacion.INCOMPLETO:
+            acc.incompletos++;
+            break;
+          case EstadoHomologacion.NO_APLICA:
+            acc.noAplica++;
+            break;
+        }
+        return acc;
+      },
+      { homologados: 0, incompletos: 0, noAplica: 0 },
+    );
+
+    // Calcular créditos desde los resultados guardados
+    const cursosAntiguosSeleccionados =
+      resultados[0]?.cursosAntiguosSeleccionados || [];
+
+    let creditosCompletadosMallaAntigua = 0;
+    if (cursosAntiguosSeleccionados.length > 0) {
+      const cursosAntiguos = await this.cursoRepository.find({
+        where: cursosAntiguosSeleccionados.map((id) => ({ id })),
+      });
+      creditosCompletadosMallaAntigua = cursosAntiguos.reduce(
+        (total, curso) => total + curso.creditos,
+        0,
+      );
+    }
+
+    // Calcular créditos homologados en malla nueva
+    const cursosHomologados = resultados.filter(
+      (r) => r.estado === EstadoHomologacion.HOMOLOGADO,
+    );
+    let creditosHomologadosMallaNueva = 0;
+    for (const resultado of cursosHomologados) {
+      if (resultado.cursoNuevo) {
+        creditosHomologadosMallaNueva += resultado.cursoNuevo.creditos;
+      }
+    }
+
+    // Calcular total de créditos de malla nueva
+    let totalCreditosMallaNueva = 0;
+    if (dto.mallaNuevaId) {
+      const cursosNuevos = await this.cursoRepository.find({
+        where: { mallaCurricularId: dto.mallaNuevaId },
+      });
+      totalCreditosMallaNueva = cursosNuevos.reduce(
+        (total, curso) => total + curso.creditos,
+        0,
+      );
+    }
+
+    return {
+      ...resumenBasico,
+      creditosCompletadosMallaAntigua,
+      creditosHomologadosMallaNueva,
+      totalCreditosMallaNueva,
+    };
   }
 
   async findAll(): Promise<EquivalenciaGrupo[]> {
@@ -306,7 +432,7 @@ export class EquivalenciasService {
   // Métodos para manejar resultados de homologación
   async getResultadosEstudiante(
     dto: GetResultadosHomologacionDto,
-  ): Promise<ResultadoHomologacion[]> {
+  ): Promise<ResultadosEstudianteResponse> {
     const whereConditions: any = {
       estudianteId: dto.estudianteId,
     };
@@ -326,7 +452,7 @@ export class EquivalenciasService {
       );
     }
 
-    return this.resultadoHomologacionRepository.find({
+    const resultados = await this.resultadoHomologacionRepository.find({
       where: whereConditions,
       relations: [
         'estudiante',
@@ -337,6 +463,17 @@ export class EquivalenciasService {
       ],
       order: { created_at: 'DESC' },
     });
+
+    // Calcular resumen basado en los resultados
+    const resumen = await this.calcularResumenDesdeResultados(resultados, dto);
+
+    return {
+      resultados,
+      resumen,
+      estudianteId: dto.estudianteId,
+      mallaAntiguaId: dto.mallaAntiguaId,
+      mallaNuevaId: dto.mallaNuevaId,
+    };
   }
 
   async getUltimaEvaluacionEstudiante(

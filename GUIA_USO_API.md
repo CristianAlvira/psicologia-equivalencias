@@ -243,7 +243,10 @@ Content-Type: application/json
   "resumen": {
     "homologados": 1,
     "incompletos": 1, 
-    "noAplica": 8
+    "noAplica": 8,
+    "creditosCompletadosMallaAntigua": 12,
+    "creditosHomologadosMallaNueva": 7,
+    "totalCreditosMallaNueva": 155
   }
 }
 ```
@@ -258,6 +261,41 @@ GET /api/equivalencias?mallaAntiguaId=1&mallaNuevaId=2
 #### 3.2 Ver detalles de un grupo de equivalencias
 ```http
 GET /api/equivalencias/grupos/4
+```
+
+#### 3.3 Consultar resultados de un estudiante con resumen detallado
+```http
+GET /api/equivalencias/resultados?estudianteId=1&mallaAntiguaId=1&mallaNuevaId=2
+```
+
+**Respuesta:**
+```json
+{
+  "resultados": [
+    {
+      "id": 1,
+      "estado": "HOMOLOGADO",
+      "observacion": "Homologado por: Introducción a la Psicología",
+      "cursoNuevo": {
+        "id": 101,
+        "nombre": "Fundamentos de Psicología",
+        "creditos": 4
+      },
+      "created_at": "2025-01-16T10:30:00.000Z"
+    }
+  ],
+  "resumen": {
+    "homologados": 5,
+    "incompletos": 2,
+    "noAplica": 15,
+    "creditosCompletadosMallaAntigua": 45,
+    "creditosHomologadosMallaNueva": 35,
+    "totalCreditosMallaNueva": 155
+  },
+  "estudianteId": 1,
+  "mallaAntiguaId": 1,
+  "mallaNuevaId": 2
+}
 ```
 
 **Respuesta:**
@@ -328,6 +366,24 @@ GET /api/equivalencias/grupos/4
 | **HOMOLOGADO** ✅ | El curso ya está completamente homologado | Ninguna |
 | **INCOMPLETO** 🟡 | Faltan cursos para completar la homologación | Debe cursar los faltantes |
 | **NO_APLICA** ⚪ | No hay regla de equivalencia | Debe cursar el curso nuevo |
+
+## Información de Créditos en el Resumen
+
+El resumen incluye información detallada sobre créditos para ayudar al estudiante a entender su progreso:
+
+| Campo | Descripción | Ejemplo |
+|-------|-------------|---------|
+| `homologados` | Número de cursos homologados | 5 |
+| `incompletos` | Número de cursos con homologación incompleta | 2 |
+| `noAplica` | Número de cursos sin regla de equivalencia | 15 |
+| `creditosCompletadosMallaAntigua` | Total de créditos que completó en la malla antigua | 45 |
+| `creditosHomologadosMallaNueva` | Créditos que obtiene en la malla nueva por homologación | 35 |
+| `totalCreditosMallaNueva` | Total de créditos requeridos en la malla nueva | 155 |
+
+### Interpretación del Ejemplo:
+- **Malla Antigua**: El estudiante completó 45 créditos
+- **Malla Nueva**: Le homologan 35 créditos de los 155 totales
+- **Pendiente**: Le faltan 120 créditos por cursar en la malla nueva
 
 ## Frontend UX Recomendado
 

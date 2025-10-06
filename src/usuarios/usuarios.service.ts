@@ -109,7 +109,14 @@ export class UsuariosService {
   }
 
   async findAll(filterDto: FilterUsuariosQueryDto) {
-    const { limit = 10, offset = 0, estado, estudiante } = filterDto;
+    const {
+      limit = 10,
+      offset = 0,
+      estado,
+      estudiante,
+      codigo_estudiantil,
+      tiene_equivalencias,
+    } = filterDto;
     const skip = offset;
 
     const queryBuilder = this.usuarioRepository
@@ -126,6 +133,30 @@ export class UsuariosService {
 
     if (estudiante) {
       queryBuilder.andWhere('usuario.email IS NULL');
+    }
+
+    if (codigo_estudiantil) {
+      queryBuilder.andWhere(
+        'usuario.codigo_estudiantil ILIKE :codigo_estudiantil',
+        {
+          codigo_estudiantil: `%${codigo_estudiantil}%`,
+        },
+      );
+    }
+
+    if (tiene_equivalencias !== undefined) {
+      if (tiene_equivalencias) {
+        queryBuilder
+          .innerJoin(
+            'resultados_homologacion',
+            'rh',
+            'rh.estudiante_id = usuario.id',
+          )
+          .addSelect('COUNT(DISTINCT rh.id) as equivalencias_count')
+          .groupBy('usuario.id')
+          .having('COUNT(DISTINCT rh.id) > 0');
+      }
+      // Si tiene_equivalencias es false, no agregamos ningún filtro (trae todos)
     }
 
     const [usuarios, total] = await queryBuilder.getManyAndCount();

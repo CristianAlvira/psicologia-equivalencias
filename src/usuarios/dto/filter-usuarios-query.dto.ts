@@ -31,4 +31,27 @@ export class FilterUsuariosQueryDto extends PaginationDto {
   })
   @Type(() => Boolean)
   estudiante?: boolean;
+
+  @ApiProperty({
+    example: '123456',
+    required: false,
+    description: 'Filtrar estudiantes por codigo estudiantil',
+  })
+  @IsOptional()
+  codigo_estudiantil?: string;
+
+  @ApiProperty({
+    example: true,
+    required: false,
+    description:
+      'Filtrar usuarios que tienen equivalencias registradas (true) o todos los usuarios (vacio)',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @Type(() => Boolean)
+  tiene_equivalencias?: boolean;
 }

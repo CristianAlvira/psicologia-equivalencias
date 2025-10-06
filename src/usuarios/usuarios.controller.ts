@@ -62,14 +62,15 @@ export class UsuariosController {
     return this.usuariosService.findOne(+id);
   }
 
-  @Get('codigo_estudiantil/:codigo_estudiantil')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('ver_usuario')
-  findOneByCodigoEstudiante(
-    @Param('codigo_estudiantil') codigo_estudiantil: string,
-  ) {
-    return this.usuariosService.findOneByCodigoEstudiante(codigo_estudiantil);
-  }
+  // SE UNIFICO CON EL METODO FIND-ALL()
+  // @Get('codigo_estudiantil/:codigo_estudiantil')
+  // @UseGuards(JwtAuthGuard, PermissionsGuard)
+  // @RequirePermissions('ver_usuario')
+  // findOneByCodigoEstudiante(
+  //   @Param('codigo_estudiantil') codigo_estudiantil: string,
+  // ) {
+  //   return this.usuariosService.findOneByCodigoEstudiante(codigo_estudiantil);
+  // }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)

@@ -144,27 +144,62 @@ export class UsuariosService {
       );
     }
 
+    // Siempre hacer LEFT JOIN para obtener información de equivalencias
+    queryBuilder
+      .leftJoin(
+        'resultados_homologacion',
+        'rh_info',
+        'rh_info.estudiante_id = usuario.id',
+      )
+      .addSelect('COUNT(DISTINCT rh_info.id) as equivalencias_count')
+      .groupBy(
+        'usuario.id, usuario.nombres, usuario.apellidos, usuario.email, usuario.estado, usuario.codigo_estudiantil, usuario.created_at, usuario.updated_at',
+      );
+
     if (tiene_equivalencias !== undefined) {
       if (tiene_equivalencias) {
-        queryBuilder
-          .innerJoin(
-            'resultados_homologacion',
-            'rh',
-            'rh.estudiante_id = usuario.id',
-          )
-          .addSelect('COUNT(DISTINCT rh.id) as equivalencias_count')
-          .groupBy('usuario.id')
-          .having('COUNT(DISTINCT rh.id) > 0');
+        queryBuilder.having('COUNT(DISTINCT rh_info.id) > 0');
       }
       // Si tiene_equivalencias es false, no agregamos ningún filtro (trae todos)
     }
 
-    const [usuarios, total] = await queryBuilder.getManyAndCount();
+    const result = await queryBuilder.getRawAndEntities();
+    const usuarios = result.entities;
+    const rawResults = result.raw;
+
+    // Obtener el total sin filtros de equivalencias para el conteo correcto
+    const totalQueryBuilder =
+      this.usuarioRepository.createQueryBuilder('usuario');
+
+    if (estado !== undefined) {
+      totalQueryBuilder.andWhere('usuario.estado = :estado', { estado });
+    }
+
+    if (estudiante) {
+      totalQueryBuilder.andWhere('usuario.email IS NULL');
+    }
+
+    if (codigo_estudiantil) {
+      totalQueryBuilder.andWhere(
+        'usuario.codigo_estudiantil ILIKE :codigo_estudiantil',
+        {
+          codigo_estudiantil: `%${codigo_estudiantil}%`,
+        },
+      );
+    }
+
+    const total = await totalQueryBuilder.getCount();
 
     return {
-      data: usuarios.map(({ password, ...usuario }) => {
+      data: usuarios.map(({ password, ...usuario }, index) => {
         void password;
-        return usuario;
+        const equivalenciasCount = parseInt(
+          rawResults[index]?.equivalencias_count || '0',
+        );
+        return {
+          ...usuario,
+          tiene_equivalencia: equivalenciasCount > 0,
+        };
       }),
       total,
       limit,

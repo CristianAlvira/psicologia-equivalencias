@@ -87,7 +87,41 @@ export class EquivalenciasController {
   }
 
   @Get('resultados/ultima/:estudianteId/:mallaAntiguaId/:mallaNuevaId')
-  @ApiOperation({ summary: 'Obtener la última evaluación de un estudiante' })
+  @ApiOperation({
+    summary:
+      'Obtener la última evaluación de un estudiante con resumen incluido',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Última evaluación del estudiante con resumen de equivalencias',
+    schema: {
+      type: 'object',
+      properties: {
+        resultados: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+        resumen: {
+          type: 'object',
+          properties: {
+            totalCursosMallaAntigua: { type: 'number' },
+            totalCreditosMallaAntigua: { type: 'number' },
+            cursosHomologados: { type: 'number' },
+            creditosHomologados: { type: 'number' },
+            cursosIncompletos: { type: 'number' },
+            creditosIncompletos: { type: 'number' },
+            cursosNoAplican: { type: 'number' },
+            creditosNoAplican: { type: 'number' },
+            porcentajeCompletado: { type: 'number' },
+          },
+        },
+        estudianteId: { type: 'number' },
+        mallaAntiguaId: { type: 'number' },
+        mallaNuevaId: { type: 'number' },
+      },
+    },
+  })
   async getUltimaEvaluacion(
     @Param('estudianteId') estudianteId: string,
     @Param('mallaAntiguaId') mallaAntiguaId: string,

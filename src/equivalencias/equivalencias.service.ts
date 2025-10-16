@@ -480,16 +480,40 @@ export class EquivalenciasService {
     estudianteId: number,
     mallaAntiguaId: number,
     mallaNuevaId: number,
-  ): Promise<ResultadoHomologacion[]> {
-    return this.resultadoHomologacionRepository.find({
+  ): Promise<ResultadosEstudianteResponse> {
+    const resultados = await this.resultadoHomologacionRepository.find({
       where: {
         estudianteId,
         mallaAntiguaId,
         mallaNuevaId,
       },
-      relations: ['cursoNuevo', 'grupo'],
+      relations: [
+        'estudiante',
+        'mallaAntigua',
+        'mallaNueva',
+        'cursoNuevo',
+        'grupo',
+      ],
       order: { created_at: 'DESC' },
     });
+
+    // Crear DTO para calcular resumen
+    const dto: GetResultadosHomologacionDto = {
+      estudianteId,
+      mallaAntiguaId,
+      mallaNuevaId,
+    };
+
+    // Calcular resumen basado en los resultados
+    const resumen = await this.calcularResumenDesdeResultados(resultados, dto);
+
+    return {
+      resultados,
+      resumen,
+      estudianteId,
+      mallaAntiguaId,
+      mallaNuevaId,
+    };
   }
 
   async getResumenEstudiante(

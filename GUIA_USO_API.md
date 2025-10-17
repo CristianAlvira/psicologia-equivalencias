@@ -69,13 +69,18 @@ Content-Type: application/json
 
 #### 1.4 Definir Equivalencias
 
-**Crear grupo de equivalencias:**
+#### Tipos de Equivalencias Disponibles:
+
+##### Tipo 1: COMPLETA (Comportamiento por defecto)
+Todos los cursos antiguos son requeridos para homologar el curso nuevo:
+
 ```http
 POST /api/equivalencias/grupos
 Content-Type: application/json
 
 {
-  "descripcion": "Electivas básicas",
+  "descripcion": "Electivas básicas - Ambas requeridas",
+  "tipo": "COMPLETA",
   "mallaAntiguaId": 1,
   "mallaNuevaId": 2,
   "items": [
@@ -84,11 +89,81 @@ Content-Type: application/json
       "lado": "ANTIGUA"
     },
     {
-      "cursoId": 8,
+      "cursoId": 8, 
       "lado": "ANTIGUA"
     },
     {
       "cursoId": 104,
+      "lado": "NUEVA"
+    }
+  ]
+}
+```
+
+##### Tipo 2: OPCIONAL_ANTIGUA (Cualquier curso antiguo homologa)
+Cualquiera de los cursos antiguos puede homologar el curso nuevo:
+
+```http
+POST /api/equivalencias/grupos
+Content-Type: application/json
+
+{
+  "descripcion": "Habilidades clínicas II - Cualquier clínica homologa",
+  "tipo": "OPCIONAL_ANTIGUA",
+  "mallaAntiguaId": 1,
+  "mallaNuevaId": 2,
+  "items": [
+    {
+      "cursoId": 25,
+      "lado": "ANTIGUA"
+    },
+    {
+      "cursoId": 30,
+      "lado": "ANTIGUA"  
+    },
+    {
+      "cursoId": 205,
+      "lado": "NUEVA"
+    }
+  ]
+}
+```
+
+##### Tipo 3: OPCIONAL_NUEVA (Un curso antiguo puede homologar varios)
+Un curso antiguo puede homologar cualquiera de los cursos nuevos disponibles:
+
+```http
+POST /api/equivalencias/grupos
+Content-Type: application/json
+
+{
+  "descripcion": "Psicología y Arte - Puede homologar cualquier electiva específica",
+  "tipo": "OPCIONAL_NUEVA", 
+  "mallaAntiguaId": 1,
+  "mallaNuevaId": 2,
+  "items": [
+    {
+      "cursoId": 18,
+      "lado": "ANTIGUA"
+    },
+    {
+      "cursoId": 301,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 302,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 303,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 304,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 305,
       "lado": "NUEVA"
     }
   ]
@@ -342,20 +417,37 @@ GET /api/equivalencias/resultados?estudianteId=1&mallaAntiguaId=1&mallaNuevaId=2
 
 ## Casos de Uso Detallados
 
-### Caso 1: Equivalencia 1:1 (Simple)
+### Caso 1: Equivalencia 1:1 (Simple - COMPLETA)
 - **Antiguo:** "Introducción a la Psicología" 
 - **Nuevo:** "Fundamentos de Psicología"
 - **Resultado:** Si el estudiante cursó "Introducción a la Psicología" → "Fundamentos de Psicología" queda HOMOLOGADO
 
-### Caso 2: Equivalencia 2:1 (Requiere múltiples cursos)
-- **Antiguos:** "Electiva I" + "Electiva II"
+### Caso 2: Equivalencia 2:1 (Requiere múltiples cursos - COMPLETA)
+- **Antiguos:** "Electiva I" + "Electiva II" (AMBAS REQUERIDAS)
 - **Nuevo:** "Electivas Integradas"
 - **Resultados posibles:**
   - Ambas cursadas → HOMOLOGADO
   - Solo una cursada → INCOMPLETO
   - Ninguna cursada → NO_APLICA (si no se selecciona)
 
-### Caso 3: Sin equivalencia definida
+### Caso 3: Cualquier curso antiguo homologa (OPCIONAL_ANTIGUA)
+- **Antiguos:** "Clínica Neuropsicológica" O "Clínica Psicoanalítica" (CUALQUIERA SIRVE)
+- **Nuevo:** "Habilidades Clínicas II"
+- **Resultados posibles:**
+  - Si cursó Clínica Neuropsicológica → HOMOLOGADO
+  - Si cursó Clínica Psicoanalítica → HOMOLOGADO
+  - Si cursó ambas → HOMOLOGADO (con créditos extras)
+  - Si no cursó ninguna → INCOMPLETO
+
+### Caso 4: Un curso puede homologar varios (OPCIONAL_NUEVA)
+- **Antiguo:** "Psicología y Arte"
+- **Nuevos:** "Electiva Específica I", "Electiva Específica II", "Electiva Específica III", "Electiva Específica IV", "Electiva Específica V" (CUALQUIERA DISPONIBLE)
+- **Lógica:** Si el estudiante cursó "Psicología y Arte", puede homologar cualquiera de las electivas específicas que aún no haya sido homologada por otro curso
+- **Resultados:**
+  - Si cursó "Psicología y Arte" → Homologa la primera electiva específica disponible
+  - Sistema selecciona automáticamente cuál homologar según prioridad o disponibilidad
+
+### Caso 5: Sin equivalencia definida
 - **Curso nuevo:** "Matemáticas Aplicadas" (sin equivalencia definida)
 - **Resultado:** NO_APLICA
 
@@ -429,6 +521,106 @@ Malla Curricular 2025 - Resultados de Homologación
 🟡 Incompletos: 1 curso  
 ⚪ Sin homologar: 8 cursos
 ```
+
+## Ejemplos Específicos de Configuración
+
+### Configurar: "Psicología y Arte puede homologar cualquier Electiva Específica"
+
+```http
+POST /api/equivalencias/grupos
+Content-Type: application/json
+
+{
+  "descripcion": "Psicología y Arte homologa cualquier electiva específica disponible",
+  "tipo": "OPCIONAL_NUEVA",
+  "mallaAntiguaId": 1,
+  "mallaNuevaId": 2,
+  "items": [
+    {
+      "cursoId": 18,
+      "lado": "ANTIGUA"
+    },
+    {
+      "cursoId": 301,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 302,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 303,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 304,
+      "lado": "NUEVA"
+    },
+    {
+      "cursoId": 305,
+      "lado": "NUEVA"
+    }
+  ]
+}
+```
+
+**Donde:**
+- cursoId 18 = "Psicología y Arte" (malla antigua)
+- cursoId 301 = "Electiva Específica I" (malla nueva)
+- cursoId 302 = "Electiva Específica II" (malla nueva)
+- cursoId 303 = "Electiva Específica III" (malla nueva)
+- cursoId 304 = "Electiva Específica IV" (malla nueva)
+- cursoId 305 = "Electiva Específica V" (malla nueva)
+
+### Configurar: "Cualquier Clínica puede homologar Habilidades Clínicas II"
+
+```http
+POST /api/equivalencias/grupos
+Content-Type: application/json
+
+{
+  "descripcion": "Cualquier clínica de la malla antigua homologa Habilidades Clínicas II",
+  "tipo": "OPCIONAL_ANTIGUA",
+  "mallaAntiguaId": 1,
+  "mallaNuevaId": 2,
+  "items": [
+    {
+      "cursoId": 25,
+      "lado": "ANTIGUA"
+    },
+    {
+      "cursoId": 30,
+      "lado": "ANTIGUA"
+    },
+    {
+      "cursoId": 205,
+      "lado": "NUEVA"
+    }
+  ]
+}
+```
+
+**Donde:**
+- cursoId 25 = "Clínica Neuropsicológica" (malla antigua)
+- cursoId 30 = "Clínica Psicoanalítica" (malla antigua)  
+- cursoId 205 = "Habilidades Clínicas II" (malla nueva)
+
+## Lógica de Evaluación Mejorada
+
+### Para OPCIONAL_NUEVA:
+Cuando un estudiante tiene "Psicología y Arte", el sistema:
+
+1. Busca todos los grupos donde "Psicología y Arte" aparece como curso antiguo
+2. Identifica todos los cursos nuevos del grupo que aún no han sido homologados
+3. Selecciona automáticamente el primer curso nuevo disponible para homologar
+4. Marca ese curso como HOMOLOGADO para el estudiante
+
+### Para OPCIONAL_ANTIGUA:
+Cuando un estudiante tiene cualquier curso de clínica, el sistema:
+
+1. Verifica si tiene al menos uno de los cursos antiguos del grupo
+2. Si tiene cualquiera → HOMOLOGADO
+3. Si no tiene ninguno → INCOMPLETO con mensaje explicativo
 
 ## Datos de Prueba
 

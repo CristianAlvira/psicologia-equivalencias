@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -8,6 +9,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { TipoEquivalencia } from '../entities/equivalencia-grupo.entity';
 
 export class EquivalenciaItemDto {
   @ApiProperty({ example: 1 })
@@ -26,6 +28,16 @@ export class CreateEquivalenciaGrupoDto {
   @IsString()
   @IsOptional()
   descripcion?: string;
+
+  @ApiProperty({
+    example: 'COMPLETA',
+    enum: TipoEquivalencia,
+    description:
+      'Tipo de equivalencia: COMPLETA (todos requeridos), OPCIONAL_ANTIGUA (cualquier curso antiguo), OPCIONAL_NUEVA (cualquier curso nuevo)',
+  })
+  @IsEnum(TipoEquivalencia)
+  @IsOptional()
+  tipo?: TipoEquivalencia;
 
   @ApiProperty({ example: 1 })
   @IsNumber()

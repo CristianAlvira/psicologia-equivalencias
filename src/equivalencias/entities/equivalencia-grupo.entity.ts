@@ -11,6 +11,12 @@ import {
 import { MallaCurricular } from '@/malla_curricular/entities/malla_curricular.entity';
 import { EquivalenciaItem } from './equivalencia-item.entity';
 
+export enum TipoEquivalencia {
+  COMPLETA = 'COMPLETA', // Todos los cursos antiguos son requeridos (comportamiento actual)
+  OPCIONAL_ANTIGUA = 'OPCIONAL_ANTIGUA', // Cualquiera de los cursos antiguos puede homologar el curso nuevo
+  OPCIONAL_NUEVA = 'OPCIONAL_NUEVA', // El curso antiguo puede homologar cualquiera de los cursos nuevos disponibles
+}
+
 @Entity('equivalencia_grupos')
 export class EquivalenciaGrupo {
   @PrimaryGeneratedColumn()
@@ -18,6 +24,13 @@ export class EquivalenciaGrupo {
 
   @Column({ type: 'varchar', length: 200, nullable: true })
   descripcion?: string;
+
+  @Column({
+    type: 'enum',
+    enum: TipoEquivalencia,
+    default: TipoEquivalencia.COMPLETA,
+  })
+  tipo: TipoEquivalencia;
 
   @Column({ name: 'malla_antigua_id' })
   mallaAntiguaId: number;

@@ -134,71 +134,24 @@ export class EquivalenciasService {
     let homologados = 0;
     let incompletos = 0;
     let noAplica = 0;
-    const cursosNuevosYaProcesados = new Set<number>();
 
-    // Pre-procesar grupos de tipo OPCIONAL_NUEVA
-    await this.procesarGruposOpcionalNueva(
-      grupos,
-      dto.cursosAntiguosMarcados,
-      resultado,
-      resultadosParaGuardar,
-      cursosNuevosYaProcesados,
-      dto,
-    );
-
-    // Actualizar contadores basados en los resultados de OPCIONAL_NUEVA
-    for (const res of Object.values(resultado)) {
-      if (res.estado === 'HOMOLOGADO') homologados++;
-      else if (res.estado === 'INCOMPLETO') incompletos++;
-      else noAplica++;
-    }
-
-    // Procesar cada curso de la malla nueva
+    // FASE 1: Procesar equivalencias COMPLETA y OPCIONAL_ANTIGUA primero
     for (const cursoNuevo of cursosNuevos) {
-      // Saltar cursos ya procesados por OPCIONAL_NUEVA
-      if (cursosNuevosYaProcesados.has(cursoNuevo.id)) {
-        continue;
-      }
       const cursoId = cursoNuevo.id.toString();
 
-      // Buscar si este curso nuevo tiene equivalencias definidas
-      const grupoConCursoNuevo = grupos.find((grupo) =>
-        grupo.items.some(
-          (item) =>
-            item.cursoId === cursoNuevo.id &&
-            item.lado === LadoEquivalencia.NUEVA,
-        ),
+      // Buscar si este curso nuevo tiene equivalencias definidas (COMPLETA o OPCIONAL_ANTIGUA)
+      const grupoConCursoNuevo = grupos.find(
+        (grupo) =>
+          grupo.tipo !== TipoEquivalencia.OPCIONAL_NUEVA &&
+          grupo.items.some(
+            (item) =>
+              item.cursoId === cursoNuevo.id &&
+              item.lado === LadoEquivalencia.NUEVA,
+          ),
       );
 
       if (!grupoConCursoNuevo) {
-        // No hay regla de equivalencia para este curso
-        resultado[cursoId] = {
-          estado: 'NO_APLICA',
-          observacion: 'No existe regla de homologación para este curso.',
-          cursoNuevo: {
-            id: cursoNuevo.id,
-            nombre: cursoNuevo.nombre,
-            creditos: cursoNuevo.creditos,
-            semestre: cursoNuevo.semestre,
-          },
-          cursosAntiguosPresentes: [],
-          cursosAntiguosFaltantes: [],
-        };
-        noAplica++;
-
-        // Guardar resultado en BD
-        resultadosParaGuardar.push({
-          estudianteId: dto.estudianteId,
-          mallaAntiguaId: dto.mallaAntiguaId,
-          mallaNuevaId: dto.mallaNuevaId,
-          cursoNuevoId: cursoNuevo.id,
-          estado: EstadoHomologacion.NO_APLICA,
-          observacion: 'No existe regla de homologación para este curso.',
-          cursosAntiguosPresentes: [],
-          cursosAntiguosFaltantes: [],
-          cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
-        });
-        continue;
+        continue; // Se procesará en la fase 2 o 3
       }
 
       // Evaluar equivalencia según el tipo
@@ -287,6 +240,64 @@ export class EquivalenciasService {
         });
       }
     }
+
+    // FASE 2: Procesar grupos OPCIONAL_NUEVA para cursos no homologados
+    await this.procesarGruposOpcionalNueva(
+      grupos,
+      dto.cursosAntiguosMarcados,
+      resultado,
+      resultadosParaGuardar,
+      dto,
+    );
+
+    // FASE 3: Procesar cursos sin equivalencias definidas
+    for (const cursoNuevo of cursosNuevos) {
+      const cursoId = cursoNuevo.id.toString();
+
+      // Si ya fue procesado, saltarlo
+      if (resultado[cursoId]) {
+        continue;
+      }
+
+      // No hay regla de equivalencia para este curso
+      resultado[cursoId] = {
+        estado: 'NO_APLICA',
+        observacion: 'No existe regla de homologación para este curso.',
+        cursoNuevo: {
+          id: cursoNuevo.id,
+          nombre: cursoNuevo.nombre,
+          creditos: cursoNuevo.creditos,
+          semestre: cursoNuevo.semestre,
+        },
+        cursosAntiguosPresentes: [],
+        cursosAntiguosFaltantes: [],
+      };
+      noAplica++;
+
+      // Guardar resultado en BD
+      resultadosParaGuardar.push({
+        estudianteId: dto.estudianteId,
+        mallaAntiguaId: dto.mallaAntiguaId,
+        mallaNuevaId: dto.mallaNuevaId,
+        cursoNuevoId: cursoNuevo.id,
+        estado: EstadoHomologacion.NO_APLICA,
+        observacion: 'No existe regla de homologación para este curso.',
+        cursosAntiguosPresentes: [],
+        cursosAntiguosFaltantes: [],
+        cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
+      });
+    }
+
+    // Recalcular contadores finales
+    homologados = Object.values(resultado).filter(
+      (r) => r.estado === 'HOMOLOGADO',
+    ).length;
+    incompletos = Object.values(resultado).filter(
+      (r) => r.estado === 'INCOMPLETO',
+    ).length;
+    noAplica = Object.values(resultado).filter(
+      (r) => r.estado === 'NO_APLICA',
+    ).length;
 
     // Guardar todos los resultados en la base de datos
     if (resultadosParaGuardar.length > 0) {
@@ -643,7 +654,6 @@ export class EquivalenciasService {
     cursosAntiguosMarcados: number[],
     resultado: Record<string, ResultadoCurso>,
     resultadosParaGuardar: Partial<ResultadoHomologacion>[],
-    cursosNuevosYaProcesados: Set<number>,
     dto: EvaluarEquivalenciasDto,
   ): Promise<void> {
     const gruposOpcionalNueva = grupos.filter(
@@ -666,9 +676,11 @@ export class EquivalenciasService {
 
       if (cursosAntiguosPresentes.length > 0) {
         // El estudiante tiene curso(s) antiguo(s) de este grupo
-        // Seleccionar el primer curso nuevo disponible que no haya sido procesado
+        // Seleccionar el primer curso nuevo disponible que no haya sido homologado ya
         const cursoNuevoDisponible = cursosNuevosDelGrupo.find(
-          (cursoId) => !cursosNuevosYaProcesados.has(cursoId),
+          (cursoId) =>
+            !resultado[cursoId.toString()] ||
+            resultado[cursoId.toString()].estado !== 'HOMOLOGADO',
         );
 
         if (cursoNuevoDisponible) {
@@ -711,9 +723,6 @@ export class EquivalenciasService {
               cursosAntiguosFaltantes: [],
               cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
             });
-
-            // Marcar este curso como procesado
-            cursosNuevosYaProcesados.add(cursoNuevo.id);
           }
         }
       }
@@ -729,10 +738,6 @@ export class EquivalenciasService {
   ): EvaluacionEquivalenciaResult {
     const cursosAntiguosRequeridos = grupo.items
       .filter((item) => item.lado === LadoEquivalencia.ANTIGUA)
-      .map((item) => item.cursoId);
-
-    const cursosNuevosDisponibles = grupo.items
-      .filter((item) => item.lado === LadoEquivalencia.NUEVA)
       .map((item) => item.cursoId);
 
     const cursosAntiguosPresentes = cursosAntiguosRequeridos.filter((cursoId) =>

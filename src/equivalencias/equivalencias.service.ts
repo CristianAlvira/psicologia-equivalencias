@@ -161,11 +161,31 @@ export class EquivalenciasService {
       let mejorEvaluacion: any = null;
       let mejorGrupo: EquivalenciaGrupo | null = null;
 
+      // Debug: Log para ver qué grupos se están evaluando
+      console.log(
+        `\n=== EVALUANDO CURSO NUEVO: ${cursoNuevo.nombre} (ID: ${cursoNuevo.id}) ===`,
+      );
+      console.log(
+        `Grupos encontrados para este curso: ${gruposConCursoNuevo.length}`,
+      );
+
       for (const grupo of gruposConCursoNuevo) {
+        console.log(
+          `\n- Grupo ID: ${grupo.id}, Tipo: ${grupo.tipo}, Descripción: ${grupo.descripcion}`,
+        );
+        console.log(
+          `  Items del grupo:`,
+          grupo.items.map((item) => `${item.cursoId}(${item.lado})`),
+        );
+
         const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
           grupo,
           dto.cursosAntiguosMarcados,
           cursosAntiguosUtilizados,
+        );
+
+        console.log(
+          `  Resultado evaluación: esHomologado=${evaluacionResultado.esHomologado}, observación=${evaluacionResultado.observacion}`,
         );
 
         // Si encontramos una homologación exitosa, la usamos

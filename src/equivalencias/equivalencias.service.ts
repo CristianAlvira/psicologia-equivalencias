@@ -142,8 +142,8 @@ export class EquivalenciasService {
     for (const cursoNuevo of cursosNuevos) {
       const cursoId = cursoNuevo.id.toString();
 
-      // Buscar si este curso nuevo tiene equivalencias definidas (COMPLETA o OPCIONAL_ANTIGUA)
-      const grupoConCursoNuevo = grupos.find(
+      // Buscar TODOS los grupos que contengan este curso nuevo (COMPLETA o OPCIONAL_ANTIGUA)
+      const gruposConCursoNuevo = grupos.filter(
         (grupo) =>
           grupo.tipo !== TipoEquivalencia.OPCIONAL_NUEVA &&
           grupo.items.some(
@@ -153,16 +153,43 @@ export class EquivalenciasService {
           ),
       );
 
-      if (!grupoConCursoNuevo) {
+      if (gruposConCursoNuevo.length === 0) {
         continue; // Se procesará en la fase 2 o 3
       }
 
-      // Evaluar equivalencia según el tipo
-      const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
-        grupoConCursoNuevo,
-        dto.cursosAntiguosMarcados,
-        cursosAntiguosUtilizados,
-      );
+      // Evaluar cada grupo y encontrar el primero que pueda ser homologado
+      let mejorEvaluacion: any = null;
+      let mejorGrupo: EquivalenciaGrupo | null = null;
+
+      for (const grupo of gruposConCursoNuevo) {
+        const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
+          grupo,
+          dto.cursosAntiguosMarcados,
+          cursosAntiguosUtilizados,
+        );
+
+        // Si encontramos una homologación exitosa, la usamos
+        if (evaluacionResultado.esHomologado) {
+          mejorEvaluacion = evaluacionResultado;
+          mejorGrupo = grupo;
+          break; // Usar la primera homologación exitosa
+        }
+
+        // Si no hay homologación exitosa pero es la primera evaluación, la guardamos como respaldo
+        if (!mejorEvaluacion) {
+          mejorEvaluacion = evaluacionResultado;
+          mejorGrupo = grupo;
+        }
+      }
+
+      // Usar la mejor evaluación encontrada
+      const evaluacionResultado = mejorEvaluacion;
+      const grupoConCursoNuevo = mejorGrupo;
+
+      // Validar que tenemos resultados válidos
+      if (!evaluacionResultado || !grupoConCursoNuevo) {
+        continue;
+      }
 
       if (evaluacionResultado.esHomologado) {
         // Marcar cursos antiguos como utilizados (para OPCIONAL_ANTIGUA)

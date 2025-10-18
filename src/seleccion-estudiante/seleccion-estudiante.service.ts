@@ -16,7 +16,10 @@ export class SeleccionEstudianteService {
     return `This action returns a #${id} seleccionEstudiante`;
   }
 
-  update(id: number, updateSeleccionEstudianteDto: UpdateSeleccionEstudianteDto) {
+  update(
+    id: number,
+    updateSeleccionEstudianteDto: UpdateSeleccionEstudianteDto,
+  ) {
     return `This action updates a #${id} seleccionEstudiante`;
   }
 

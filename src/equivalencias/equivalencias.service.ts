@@ -135,6 +135,9 @@ export class EquivalenciasService {
     let incompletos = 0;
     let noAplica = 0;
 
+    // Sistema de tracking para evitar reutilización de cursos antiguos
+    const cursosAntiguosUtilizados = new Set<number>();
+
     // FASE 1: Procesar equivalencias COMPLETA y OPCIONAL_ANTIGUA primero
     for (const cursoNuevo of cursosNuevos) {
       const cursoId = cursoNuevo.id.toString();
@@ -158,9 +161,17 @@ export class EquivalenciasService {
       const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
         grupoConCursoNuevo,
         dto.cursosAntiguosMarcados,
+        cursosAntiguosUtilizados,
       );
 
       if (evaluacionResultado.esHomologado) {
+        // Marcar cursos antiguos como utilizados (para OPCIONAL_ANTIGUA)
+        if (grupoConCursoNuevo.tipo === TipoEquivalencia.OPCIONAL_ANTIGUA) {
+          evaluacionResultado.cursosAntiguosPresentes.forEach((cursoId) =>
+            cursosAntiguosUtilizados.add(cursoId),
+          );
+        }
+
         // Curso completamente homologado
         const cursosNombres = await this.obtenerNombresCursos(
           evaluacionResultado.cursosAntiguosPresentes,
@@ -247,6 +258,7 @@ export class EquivalenciasService {
       dto.cursosAntiguosMarcados,
       resultado,
       resultadosParaGuardar,
+      cursosAntiguosUtilizados,
       dto,
     );
 
@@ -654,6 +666,7 @@ export class EquivalenciasService {
     cursosAntiguosMarcados: number[],
     resultado: Record<string, ResultadoCurso>,
     resultadosParaGuardar: Partial<ResultadoHomologacion>[],
+    cursosAntiguosUtilizados: Set<number>,
     dto: EvaluarEquivalenciasDto,
   ): Promise<void> {
     const gruposOpcionalNueva = grupos.filter(
@@ -710,6 +723,9 @@ export class EquivalenciasService {
               cursosAntiguosFaltantes: [],
             };
 
+            // Marcar cursos antiguos como utilizados (para OPCIONAL_NUEVA pueden ser reutilizados)
+            // Nota: En OPCIONAL_NUEVA, no marcamos como utilizados porque pueden servir para múltiples homologaciones
+
             // Guardar resultado en BD
             resultadosParaGuardar.push({
               estudianteId: dto.estudianteId,
@@ -723,6 +739,11 @@ export class EquivalenciasService {
               cursosAntiguosFaltantes: [],
               cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
             });
+
+            // Agregar cursos antiguos al tracking para evitar reutilización
+            cursosAntiguosPresentes.forEach((cursoId) => {
+              cursosAntiguosUtilizados.add(cursoId);
+            });
           }
         }
       }
@@ -735,6 +756,7 @@ export class EquivalenciasService {
   private evaluarEquivalenciaSegunTipo(
     grupo: EquivalenciaGrupo,
     cursosAntiguosMarcados: number[],
+    cursosAntiguosUtilizados: Set<number>,
   ): EvaluacionEquivalenciaResult {
     const cursosAntiguosRequeridos = grupo.items
       .filter((item) => item.lado === LadoEquivalencia.ANTIGUA)
@@ -757,18 +779,26 @@ export class EquivalenciasService {
           cursosAntiguosFaltantes,
         };
 
-      case TipoEquivalencia.OPCIONAL_ANTIGUA:
+      case TipoEquivalencia.OPCIONAL_ANTIGUA: {
         // Cualquiera de los cursos antiguos puede homologar el curso nuevo
+        // pero no se pueden reutilizar cursos ya utilizados
+        const cursosAntiguosDisponibles = cursosAntiguosPresentes.filter(
+          (cursoId) => !cursosAntiguosUtilizados.has(cursoId),
+        );
+
         return {
-          esHomologado: cursosAntiguosPresentes.length > 0,
-          cursosAntiguosPresentes,
+          esHomologado: cursosAntiguosDisponibles.length > 0,
+          cursosAntiguosPresentes: cursosAntiguosDisponibles.slice(0, 1), // Solo usar uno
           cursosAntiguosFaltantes:
-            cursosAntiguosPresentes.length > 0 ? [] : cursosAntiguosRequeridos,
+            cursosAntiguosDisponibles.length > 0
+              ? []
+              : cursosAntiguosRequeridos,
           observacion:
-            cursosAntiguosPresentes.length === 0
-              ? `Necesitas cursar al menos uno de los siguientes cursos de la malla antigua.`
+            cursosAntiguosDisponibles.length === 0
+              ? `Los cursos antiguos disponibles ya han sido utilizados para otras homologaciones.`
               : undefined,
         };
+      }
 
       case TipoEquivalencia.OPCIONAL_NUEVA:
         // El curso antiguo puede homologar cualquiera de los cursos nuevos disponibles

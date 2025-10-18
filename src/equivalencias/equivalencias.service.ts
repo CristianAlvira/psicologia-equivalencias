@@ -142,15 +142,13 @@ export class EquivalenciasService {
     for (const cursoNuevo of cursosNuevos) {
       const cursoId = cursoNuevo.id.toString();
 
-      // Buscar TODOS los grupos que contengan este curso nuevo (COMPLETA o OPCIONAL_ANTIGUA)
-      const gruposConCursoNuevo = grupos.filter(
-        (grupo) =>
-          grupo.tipo !== TipoEquivalencia.OPCIONAL_NUEVA &&
-          grupo.items.some(
-            (item) =>
-              item.cursoId === cursoNuevo.id &&
-              item.lado === LadoEquivalencia.NUEVA,
-          ),
+      // Buscar TODOS los grupos que contengan este curso nuevo (TODOS los tipos)
+      const gruposConCursoNuevo = grupos.filter((grupo) =>
+        grupo.items.some(
+          (item) =>
+            item.cursoId === cursoNuevo.id &&
+            item.lado === LadoEquivalencia.NUEVA,
+        ),
       );
 
       if (gruposConCursoNuevo.length === 0) {
@@ -161,31 +159,11 @@ export class EquivalenciasService {
       let mejorEvaluacion: any = null;
       let mejorGrupo: EquivalenciaGrupo | null = null;
 
-      // Debug: Log para ver qué grupos se están evaluando
-      console.log(
-        `\n=== EVALUANDO CURSO NUEVO: ${cursoNuevo.nombre} (ID: ${cursoNuevo.id}) ===`,
-      );
-      console.log(
-        `Grupos encontrados para este curso: ${gruposConCursoNuevo.length}`,
-      );
-
       for (const grupo of gruposConCursoNuevo) {
-        console.log(
-          `\n- Grupo ID: ${grupo.id}, Tipo: ${grupo.tipo}, Descripción: ${grupo.descripcion}`,
-        );
-        console.log(
-          `  Items del grupo:`,
-          grupo.items.map((item) => `${item.cursoId}(${item.lado})`),
-        );
-
         const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
           grupo,
           dto.cursosAntiguosMarcados,
           cursosAntiguosUtilizados,
-        );
-
-        console.log(
-          `  Resultado evaluación: esHomologado=${evaluacionResultado.esHomologado}, observación=${evaluacionResultado.observacion}`,
         );
 
         // Si encontramos una homologación exitosa, la usamos
@@ -299,15 +277,15 @@ export class EquivalenciasService {
       }
     }
 
-    // FASE 2: Procesar grupos OPCIONAL_NUEVA para cursos no homologados
-    await this.procesarGruposOpcionalNueva(
-      grupos,
-      dto.cursosAntiguosMarcados,
-      resultado,
-      resultadosParaGuardar,
-      cursosAntiguosUtilizados,
-      dto,
-    );
+    // FASE 2: ELIMINADA - Ahora OPCIONAL_NUEVA se procesa en FASE 1
+    // await this.procesarGruposOpcionalNueva(
+    //   grupos,
+    //   dto.cursosAntiguosMarcados,
+    //   resultado,
+    //   resultadosParaGuardar,
+    //   cursosAntiguosUtilizados,
+    //   dto,
+    // );
 
     // FASE 3: Procesar cursos sin equivalencias definidas
     for (const cursoNuevo of cursosNuevos) {

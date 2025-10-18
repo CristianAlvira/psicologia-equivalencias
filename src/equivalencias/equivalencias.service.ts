@@ -190,8 +190,11 @@ export class EquivalenciasService {
       }
 
       if (evaluacionResultado.esHomologado) {
-        // Marcar cursos antiguos como utilizados (para OPCIONAL_ANTIGUA)
-        if (grupoConCursoNuevo.tipo === TipoEquivalencia.OPCIONAL_ANTIGUA) {
+        // Marcar cursos antiguos como utilizados (para OPCIONAL_ANTIGUA y OPCIONAL_NUEVA)
+        if (
+          grupoConCursoNuevo.tipo === TipoEquivalencia.OPCIONAL_ANTIGUA ||
+          grupoConCursoNuevo.tipo === TipoEquivalencia.OPCIONAL_NUEVA
+        ) {
           evaluacionResultado.cursosAntiguosPresentes.forEach((cursoId) =>
             cursosAntiguosUtilizados.add(cursoId),
           );
@@ -825,15 +828,26 @@ export class EquivalenciasService {
         };
       }
 
-      case TipoEquivalencia.OPCIONAL_NUEVA:
-        // El curso antiguo puede homologar cualquiera de los cursos nuevos disponibles
-        // (Esta lógica se manejaría de forma diferente en el flujo principal)
+      case TipoEquivalencia.OPCIONAL_NUEVA: {
+        // El curso antiguo puede homologar cualquier curso nuevo disponible
+        // pero cada curso antiguo solo puede usarse una vez
+        const cursosAntiguosDisponibles = cursosAntiguosPresentes.filter(
+          (cursoId) => !cursosAntiguosUtilizados.has(cursoId),
+        );
+
         return {
-          esHomologado: cursosAntiguosPresentes.length > 0,
-          cursosAntiguosPresentes,
+          esHomologado: cursosAntiguosDisponibles.length > 0,
+          cursosAntiguosPresentes: cursosAntiguosDisponibles.slice(0, 1), // Solo usar uno
           cursosAntiguosFaltantes:
-            cursosAntiguosPresentes.length > 0 ? [] : cursosAntiguosRequeridos,
+            cursosAntiguosDisponibles.length > 0
+              ? []
+              : cursosAntiguosRequeridos,
+          observacion:
+            cursosAntiguosDisponibles.length === 0
+              ? `Los cursos antiguos disponibles ya han sido utilizados para otras homologaciones.`
+              : undefined,
         };
+      }
 
       default:
         return {

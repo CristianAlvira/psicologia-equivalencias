@@ -35,6 +35,22 @@ export class Usuario {
   @Column({ type: 'varchar', length: 50, nullable: true })
   codigo_estudiantil?: string;
 
+  // Campos de consentimiento para tratamiento de datos sensibles
+  @Column({ type: 'boolean', default: false })
+  acepta_tratamiento_datos: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  fecha_consentimiento?: Date;
+
+  @Column({ type: 'varchar', length: 15, nullable: true })
+  ip_consentimiento?: string;
+
+  @Column({ type: 'text', nullable: true })
+  user_agent_consentimiento?: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  version_politicas?: string; // Para trackear qué versión de políticas aceptó
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

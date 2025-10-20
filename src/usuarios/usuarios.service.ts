@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,6 +28,13 @@ export class UsuariosService {
   ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto) {
+    // Validar que el usuario acepta el tratamiento de datos
+    if (!createUsuarioDto.acepta_tratamiento_datos) {
+      throw new BadRequestException(
+        'Debe aceptar las políticas de tratamiento de datos para crear una cuenta',
+      );
+    }
+
     const hashedPassword = createUsuarioDto.password
       ? bcrypt.hashSync(createUsuarioDto.password, 10)
       : undefined;
@@ -54,6 +62,10 @@ export class UsuariosService {
       ...createUsuarioDto,
       password: hashedPassword,
       roles: roles,
+      // Registrar consentimiento si se proporciona
+      fecha_consentimiento: createUsuarioDto.acepta_tratamiento_datos
+        ? new Date()
+        : undefined,
     });
 
     const savedUser = await this.usuarioRepository.save(usuario);
@@ -64,6 +76,13 @@ export class UsuariosService {
   }
 
   async createEstudiante(createEstudianteDto: CreateEstudianteDto) {
+    // Validar que el estudiante acepta el tratamiento de datos (OBLIGATORIO)
+    if (!createEstudianteDto.acepta_tratamiento_datos) {
+      throw new BadRequestException(
+        'Los estudiantes deben aceptar obligatoriamente las políticas de tratamiento de datos sensibles',
+      );
+    }
+
     // Verificar si ya existe un usuario con ese código estudiantil
     const studentExists = await this.usuarioRepository.findOne({
       where: { codigo_estudiantil: createEstudianteDto.codigo_estudiantil },
@@ -77,17 +96,15 @@ export class UsuariosService {
         );
 
       if (tieneEquivalencias) {
-        // throw new ConflictException(
-        //   `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
-        // );
-        return {
-          message: `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
-          estudiante_id: studentExists.id,
-        };
+        throw new ConflictException(
+          `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
+        );
       }
 
-      // Si existe pero no tiene equivalencias, devolver el estudiante existente
-      return studentExists;
+      // Si existe pero no tiene equivalencias, lanzar excepción también
+      throw new ConflictException(
+        `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya está registrado en el sistema`,
+      );
     }
 
     // Buscar el rol de estudiante por defecto (ID 2)
@@ -101,11 +118,39 @@ export class UsuariosService {
       codigo_estudiantil: createEstudianteDto.codigo_estudiantil,
       estado: createEstudianteDto.estado ?? true,
       roles: rolEstudiante ? [rolEstudiante] : [],
+      // Campos de consentimiento (obligatorios para estudiantes)
+      acepta_tratamiento_datos: createEstudianteDto.acepta_tratamiento_datos,
+      fecha_consentimiento: createEstudianteDto.acepta_tratamiento_datos
+        ? new Date()
+        : undefined,
+      version_politicas: createEstudianteDto.version_politicas || '1.0.0',
       // No incluir password ni email para estudiantes
     };
 
     const estudiante = this.usuarioRepository.create(estudianteData);
     return await this.usuarioRepository.save(estudiante);
+  }
+
+  /**
+   * Actualiza la información de consentimiento de un usuario con datos de auditoría
+   */
+  async actualizarConsentimientoConAuditoria(
+    usuarioId: number,
+    ipAddress: string,
+    userAgent: string,
+  ) {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { id: usuarioId },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    usuario.ip_consentimiento = ipAddress;
+    usuario.user_agent_consentimiento = userAgent;
+
+    return await this.usuarioRepository.save(usuario);
   }
 
   async findAll(filterDto: FilterUsuariosQueryDto) {

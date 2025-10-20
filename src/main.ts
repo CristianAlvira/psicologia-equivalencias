@@ -6,6 +6,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Configurar Express para confiar en proxies (para obtener IP real)
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
+
   app.enableCors();
 
   app.setGlobalPrefix('api');

@@ -6,6 +6,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { MustAcceptTreatment } from '@/common/validators/must-accept-treatment.validator';
 
 export class CreateEstudianteDto {
   @ApiProperty({ example: 'John' })
@@ -36,4 +37,30 @@ export class CreateEstudianteDto {
     message: 'El codigo estudiantil no puede superar los 50 caracteres',
   })
   codigo_estudiantil: string;
+
+  @ApiProperty({
+    description: 'Aceptación obligatoria de políticas de privacidad',
+    example: true,
+  })
+  @IsBoolean({
+    message: 'La aceptación de políticas debe ser un valor booleano',
+  })
+  @IsNotEmpty({ message: 'Debe aceptar las políticas de privacidad' })
+  @MustAcceptTreatment({
+    message:
+      'Debe aceptar las políticas de tratamiento de datos para continuar',
+  })
+  acepta_tratamiento_datos: boolean;
+
+  @ApiProperty({
+    description: 'Versión de las políticas aceptadas',
+    example: '1.0.0',
+    required: false,
+  })
+  @IsString({ message: 'La versión de políticas debe ser un texto' })
+  @IsOptional()
+  @MaxLength(20, {
+    message: 'La versión de políticas no puede superar los 20 caracteres',
+  })
+  version_politicas?: string;
 }

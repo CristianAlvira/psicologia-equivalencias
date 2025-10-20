@@ -8,7 +8,9 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -27,18 +29,105 @@ import { CreateEstudianteDto } from './dto/create-estudiante';
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
+  /**
+   * Extrae la IP real del cliente, manejando proxies y localhost
+   */
+  private extractRealIP(req: Request): string {
+    // Buscar en headers de proxy primero
+    const forwarded = req.get('X-Forwarded-For');
+    if (forwarded) {
+      // X-Forwarded-For puede contener múltiples IPs separadas por comas
+      const ips = forwarded.split(',').map((ip) => ip.trim());
+      const realIP = ips[0]; // La primera IP es generalmente la real
+      if (realIP && realIP !== '::1' && realIP !== '127.0.0.1') {
+        return realIP;
+      }
+    }
+
+    // Otros headers comunes de proxy
+    const realIP = req.get('X-Real-IP');
+    if (realIP && realIP !== '::1' && realIP !== '127.0.0.1') {
+      return realIP;
+    }
+
+    const clientIP = req.get('X-Client-IP');
+    if (clientIP && clientIP !== '::1' && clientIP !== '127.0.0.1') {
+      return clientIP;
+    }
+
+    // Fallback a req.ip o connection.remoteAddress
+    let ip =
+      req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
+
+    // Convertir ::1 (IPv6 localhost) a 127.0.0.1 (IPv4 localhost)
+    if (ip === '::1') {
+      ip = '127.0.0.1';
+    }
+
+    // En desarrollo, usar una IP ficticia si es localhost
+    if (ip === '127.0.0.1' || ip === 'localhost') {
+      return process.env.NODE_ENV === 'production' ? ip : '192.168.1.100';
+    }
+
+    return ip || 'unknown';
+  }
+
   @ApiOperation({ summary: 'Crear un nuevo usuario' })
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('crear_usuarios')
-  create(@Body() createUsuarioDto: CreateUsuarioDto) {
-    return this.usuariosService.create(createUsuarioDto);
+  async create(
+    @Body() createUsuarioDto: CreateUsuarioDto,
+    @Req() req: Request,
+  ) {
+    const usuario = await this.usuariosService.create(createUsuarioDto);
+
+    // Registrar información de auditoría del consentimiento
+    if (
+      createUsuarioDto.acepta_tratamiento_datos &&
+      'id' in usuario &&
+      typeof usuario.id === 'number'
+    ) {
+      const ipAddress = this.extractRealIP(req);
+      const userAgent = req.get('User-Agent') || 'unknown';
+
+      await this.usuariosService.actualizarConsentimientoConAuditoria(
+        usuario.id,
+        ipAddress,
+        userAgent,
+      );
+    }
+
+    return usuario;
   }
 
   @ApiOperation({ summary: 'Registrar un nuevo estudiante' })
   @Post('estudiantes')
-  createStudent(@Body() createEstudianteDto: CreateEstudianteDto) {
-    return this.usuariosService.createEstudiante(createEstudianteDto);
+  async createStudent(
+    @Body() createEstudianteDto: CreateEstudianteDto,
+    @Req() req: Request,
+  ) {
+    const estudiante =
+      await this.usuariosService.createEstudiante(createEstudianteDto);
+
+    // Registrar información de auditoría del consentimiento
+    if (
+      createEstudianteDto.acepta_tratamiento_datos &&
+      typeof estudiante === 'object' &&
+      'id' in estudiante &&
+      typeof estudiante.id === 'number'
+    ) {
+      const ipAddress = this.extractRealIP(req);
+      const userAgent = req.get('User-Agent') || 'unknown';
+
+      await this.usuariosService.actualizarConsentimientoConAuditoria(
+        estudiante.id,
+        ipAddress,
+        userAgent,
+      );
+    }
+
+    return estudiante;
   }
 
   @Get()
@@ -56,21 +145,11 @@ export class UsuariosController {
   }
 
   @Get(':id')
-  // @UseGuards(JwtAuthGuard, PermissionsGuard)
-  // @RequirePermissions('ver_usuario')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('ver_usuario')
   findOne(@Param('id') id: string) {
     return this.usuariosService.findOne(+id);
   }
-
-  // SE UNIFICO CON EL METODO FIND-ALL()
-  // @Get('codigo_estudiantil/:codigo_estudiantil')
-  // @UseGuards(JwtAuthGuard, PermissionsGuard)
-  // @RequirePermissions('ver_usuario')
-  // findOneByCodigoEstudiante(
-  //   @Param('codigo_estudiantil') codigo_estudiantil: string,
-  // ) {
-  //   return this.usuariosService.findOneByCodigoEstudiante(codigo_estudiantil);
-  // }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)

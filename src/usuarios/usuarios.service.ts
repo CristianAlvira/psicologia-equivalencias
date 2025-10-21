@@ -96,15 +96,23 @@ export class UsuariosService {
         );
 
       if (tieneEquivalencias) {
-        throw new ConflictException(
-          `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
-        );
+        // throw new ConflictException(
+        //   `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
+        // );
+        return {
+          message: `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya tiene equivalencias registradas`,
+          estudiante_id: studentExists.id,
+        };
       }
 
       // Si existe pero no tiene equivalencias, lanzar excepción también
-      throw new ConflictException(
-        `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya está registrado en el sistema`,
-      );
+      // throw new ConflictException(
+      //   `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya está registrado en el sistema`,
+      // );
+      return {
+        message: `El estudiante con código ${createEstudianteDto.codigo_estudiantil} ya está registrado en el sistema y no tiene equivalencias`,
+        estudiante_id: studentExists.id,
+      };
     }
 
     // Buscar el rol de estudiante por defecto (ID 2)

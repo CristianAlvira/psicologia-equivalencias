@@ -145,8 +145,8 @@ export class UsuariosController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('ver_usuario')
+  // @UseGuards(JwtAuthGuard, PermissionsGuard)
+  // @RequirePermissions('ver_usuario')
   findOne(@Param('id') id: string) {
     return this.usuariosService.findOne(+id);
   }

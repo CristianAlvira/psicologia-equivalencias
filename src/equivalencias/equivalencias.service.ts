@@ -299,140 +299,97 @@ export class EquivalenciasService {
     }
 
     // FASE 2: Procesar equivalencias OPCIONAL_NUEVA (prioridad baja)
-    for (const cursoNuevo of cursosNuevos) {
-      const cursoId = cursoNuevo.id.toString();
+    // Obtener todos los grupos OPCIONAL_NUEVA que tienen cursos antiguos disponibles
+    const gruposFlexiblesConCursosDisponibles = grupos.filter((grupo) => {
+      if (grupo.tipo !== TipoEquivalencia.OPCIONAL_NUEVA) return false;
 
-      // Si ya fue procesado en la Fase 1, saltarlo
-      if (resultado[cursoId]) {
-        continue;
-      }
+      // Verificar si el grupo tiene cursos antiguos que el estudiante posee y que no han sido utilizados
+      const cursosAntiguosDelGrupo = grupo.items
+        .filter((item) => item.lado === LadoEquivalencia.ANTIGUA)
+        .map((item) => item.cursoId);
 
-      // Buscar grupos OPCIONAL_NUEVA que contengan este curso nuevo
-      const gruposOpcionalNueva = grupos.filter(
-        (grupo) =>
-          grupo.tipo === TipoEquivalencia.OPCIONAL_NUEVA &&
-          grupo.items.some(
-            (item) =>
-              item.cursoId === cursoNuevo.id &&
-              item.lado === LadoEquivalencia.NUEVA,
-          ),
+      const cursosAntiguosDisponibles = cursosAntiguosDelGrupo.filter(
+        (cursoId) =>
+          dto.cursosAntiguosMarcados.includes(cursoId) &&
+          !cursosAntiguosUtilizados.has(cursoId),
       );
 
-      if (gruposOpcionalNueva.length === 0) {
-        continue; // Se procesará en la fase 3
+      return cursosAntiguosDisponibles.length > 0;
+    });
+
+    // Para cada grupo flexible disponible, encontrar el mejor curso nuevo para homologar
+    for (const grupo of gruposFlexiblesConCursosDisponibles) {
+      // Obtener cursos nuevos de este grupo que NO han sido homologados aún
+      const cursosNuevosDelGrupo = grupo.items
+        .filter((item) => item.lado === LadoEquivalencia.NUEVA)
+        .map((item) => item.cursoId);
+
+      const cursosNuevosDisponibles = cursosNuevosDelGrupo.filter((cursoId) => {
+        const cursoKey = cursoId.toString();
+        return (
+          !resultado[cursoKey] || resultado[cursoKey].estado !== 'HOMOLOGADO'
+        );
+      });
+
+      if (cursosNuevosDisponibles.length === 0) {
+        continue; // No hay cursos nuevos disponibles en este grupo
       }
 
-      // Evaluar grupos OPCIONAL_NUEVA
-      let mejorEvaluacion: any = null;
-      let mejorGrupo: EquivalenciaGrupo | null = null;
+      // Seleccionar el primer curso nuevo disponible
+      const cursoNuevoSeleccionado = cursosNuevosDisponibles[0];
+      const cursoNuevo = await this.cursoRepository.findOne({
+        where: { id: cursoNuevoSeleccionado },
+      });
 
-      for (const grupo of gruposOpcionalNueva) {
-        const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
-          grupo,
-          dto.cursosAntiguosMarcados,
-          cursosAntiguosUtilizados,
+      if (!cursoNuevo) continue;
+
+      // Evaluar la equivalencia
+      const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
+        grupo,
+        dto.cursosAntiguosMarcados,
+        cursosAntiguosUtilizados,
+      );
+
+      const cursoId = cursoNuevo.id.toString();
+
+      if (evaluacionResultado.esHomologado) {
+        // Marcar cursos antiguos como utilizados
+        evaluacionResultado.cursosAntiguosPresentes.forEach((cursoId) =>
+          cursosAntiguosUtilizados.add(cursoId),
         );
 
-        // Si encontramos una homologación exitosa, la usamos
-        if (evaluacionResultado.esHomologado) {
-          mejorEvaluacion = evaluacionResultado;
-          mejorGrupo = grupo;
-          break; // Usar la primera homologación exitosa
-        }
+        // Curso completamente homologado
+        const cursosNombres = await this.obtenerNombresCursos(
+          evaluacionResultado.cursosAntiguosPresentes,
+        );
+        resultado[cursoId] = {
+          estado: 'HOMOLOGADO',
+          observacion: `Homologado por: ${cursosNombres.join(', ')} (equivalencia flexible).`,
+          cursoNuevo: {
+            id: cursoNuevo.id,
+            nombre: cursoNuevo.nombre,
+            creditos: cursoNuevo.creditos,
+            semestre: cursoNuevo.semestre,
+          },
+          grupoId: grupo.id,
+          cursosAntiguosPresentes: evaluacionResultado.cursosAntiguosPresentes,
+          cursosAntiguosFaltantes: [],
+        };
+        homologados++;
 
-        // Si no hay homologación exitosa pero es la primera evaluación, la guardamos como respaldo
-        if (!mejorEvaluacion) {
-          mejorEvaluacion = evaluacionResultado;
-          mejorGrupo = grupo;
-        }
-      }
-
-      // Procesar la evaluación del grupo OPCIONAL_NUEVA
-      if (mejorEvaluacion && mejorGrupo) {
-        if (mejorEvaluacion.esHomologado) {
-          // Marcar cursos antiguos como utilizados
-          mejorEvaluacion.cursosAntiguosPresentes.forEach((cursoId) =>
-            cursosAntiguosUtilizados.add(cursoId),
-          );
-
-          // Curso completamente homologado
-          const cursosNombres = await this.obtenerNombresCursos(
-            mejorEvaluacion.cursosAntiguosPresentes,
-          );
-          resultado[cursoId] = {
-            estado: 'HOMOLOGADO',
-            observacion: `Homologado por: ${cursosNombres.join(', ')} (equivalencia flexible).`,
-            cursoNuevo: {
-              id: cursoNuevo.id,
-              nombre: cursoNuevo.nombre,
-              creditos: cursoNuevo.creditos,
-              semestre: cursoNuevo.semestre,
-            },
-            grupoId: mejorGrupo.id,
-            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
-            cursosAntiguosFaltantes: [],
-          };
-          homologados++;
-
-          // Guardar resultado en BD
-          resultadosParaGuardar.push({
-            estudianteId: dto.estudianteId,
-            mallaAntiguaId: dto.mallaAntiguaId,
-            mallaNuevaId: dto.mallaNuevaId,
-            cursoNuevoId: cursoNuevo.id,
-            estado: EstadoHomologacion.HOMOLOGADO,
-            observacion: `Homologado por: ${cursosNombres.join(', ')} (equivalencia flexible).`,
-            grupoId: mejorGrupo.id,
-            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
-            cursosAntiguosFaltantes: [],
-            cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
-          });
-        } else {
-          // Curso incompleto
-          const cursosVistos = await this.obtenerNombresCursos(
-            mejorEvaluacion.cursosAntiguosPresentes,
-          );
-          const cursosFaltantes = await this.obtenerNombresCursos(
-            mejorEvaluacion.cursosAntiguosFaltantes,
-          );
-
-          let observacion = mejorEvaluacion.observacion || '';
-          if (!observacion) {
-            if (cursosVistos.length > 0) {
-              observacion += `Tienes: ${cursosVistos.join(', ')}. `;
-            }
-            observacion += `Te falta: ${cursosFaltantes.join(', ')}.`;
-          }
-
-          resultado[cursoId] = {
-            estado: 'INCOMPLETO',
-            observacion,
-            cursoNuevo: {
-              id: cursoNuevo.id,
-              nombre: cursoNuevo.nombre,
-              creditos: cursoNuevo.creditos,
-              semestre: cursoNuevo.semestre,
-            },
-            grupoId: mejorGrupo.id,
-            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
-            cursosAntiguosFaltantes: mejorEvaluacion.cursosAntiguosFaltantes,
-          };
-          incompletos++;
-
-          // Guardar resultado en BD
-          resultadosParaGuardar.push({
-            estudianteId: dto.estudianteId,
-            mallaAntiguaId: dto.mallaAntiguaId,
-            mallaNuevaId: dto.mallaNuevaId,
-            cursoNuevoId: cursoNuevo.id,
-            estado: EstadoHomologacion.INCOMPLETO,
-            observacion,
-            grupoId: mejorGrupo.id,
-            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
-            cursosAntiguosFaltantes: mejorEvaluacion.cursosAntiguosFaltantes,
-            cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
-          });
-        }
+        // Guardar resultado en BD
+        resultadosParaGuardar.push({
+          estudianteId: dto.estudianteId,
+          mallaAntiguaId: dto.mallaAntiguaId,
+          mallaNuevaId: dto.mallaNuevaId,
+          cursoNuevoId: cursoNuevo.id,
+          estado: EstadoHomologacion.HOMOLOGADO,
+          observacion: `Homologado por: ${cursosNombres.join(', ')} (equivalencia flexible).`,
+          grupoId: grupo.id,
+          cursosAntiguosPresentes: evaluacionResultado.cursosAntiguosPresentes,
+          cursosAntiguosFaltantes: [],
+          cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
+        });
       }
     }
 

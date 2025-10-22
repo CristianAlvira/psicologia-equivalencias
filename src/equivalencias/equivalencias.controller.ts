@@ -71,6 +71,32 @@ export class EquivalenciasController {
     return this.equivalenciasService.evaluarEquivalencias(evaluarDto);
   }
 
+  @Post('actualizar')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Actualizar/repetir las equivalencias de un estudiante',
+    description:
+      'Permite al estudiante repetir el proceso de evaluación de equivalencias con una nueva selección de cursos',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Equivalencias actualizadas exitosamente. Devuelve la nueva evaluación.',
+    type: Object,
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'No se encontraron equivalencias previas para el estudiante en la combinación de mallas especificada',
+  })
+  async actualizarEquivalencias(
+    @Body() evaluarDto: EvaluarEquivalenciasDto,
+  ): Promise<EvaluacionResultado> {
+    return this.equivalenciasService.actualizarEquivalenciasEstudiante(
+      evaluarDto,
+    );
+  }
+
   @Delete('grupos/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar un grupo de equivalencias' })

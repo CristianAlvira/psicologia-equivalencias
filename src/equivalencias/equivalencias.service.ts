@@ -138,11 +138,11 @@ export class EquivalenciasService {
     // Sistema de tracking para evitar reutilización de cursos antiguos
     const cursosAntiguosUtilizados = new Set<number>();
 
-    // FASE 1: Procesar equivalencias COMPLETA y OPCIONAL_ANTIGUA primero
+    // FASE 1: Procesar equivalencias COMPLETA y OPCIONAL_ANTIGUA primero (prioridad alta)
     for (const cursoNuevo of cursosNuevos) {
       const cursoId = cursoNuevo.id.toString();
 
-      // Buscar TODOS los grupos que contengan este curso nuevo (TODOS los tipos)
+      // Buscar grupos que contengan este curso nuevo, priorizando COMPLETA y OPCIONAL_ANTIGUA
       const gruposConCursoNuevo = grupos.filter((grupo) =>
         grupo.items.some(
           (item) =>
@@ -152,14 +152,32 @@ export class EquivalenciasService {
       );
 
       if (gruposConCursoNuevo.length === 0) {
-        continue; // Se procesará en la fase 2 o 3
+        continue; // Se procesará en las fases siguientes
       }
 
-      // Evaluar cada grupo y encontrar el primero que pueda ser homologado
+      // Ordenar grupos por prioridad: COMPLETA -> OPCIONAL_ANTIGUA -> OPCIONAL_NUEVA
+      const gruposOrdenados = gruposConCursoNuevo.sort((a, b) => {
+        const prioridadA = this.obtenerPrioridadTipo(a.tipo);
+        const prioridadB = this.obtenerPrioridadTipo(b.tipo);
+        return prioridadA - prioridadB;
+      });
+
+      // Solo procesar COMPLETA y OPCIONAL_ANTIGUA en esta fase
+      const gruposPrioridadAlta = gruposOrdenados.filter(
+        (grupo) =>
+          grupo.tipo === TipoEquivalencia.COMPLETA ||
+          grupo.tipo === TipoEquivalencia.OPCIONAL_ANTIGUA,
+      );
+
+      if (gruposPrioridadAlta.length === 0) {
+        continue; // Se procesará en la fase de OPCIONAL_NUEVA
+      }
+
+      // Evaluar cada grupo de prioridad alta
       let mejorEvaluacion: any = null;
       let mejorGrupo: EquivalenciaGrupo | null = null;
 
-      for (const grupo of gruposConCursoNuevo) {
+      for (const grupo of gruposPrioridadAlta) {
         const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
           grupo,
           dto.cursosAntiguosMarcados,
@@ -280,15 +298,143 @@ export class EquivalenciasService {
       }
     }
 
-    // FASE 2: ELIMINADA - Ahora OPCIONAL_NUEVA se procesa en FASE 1
-    // await this.procesarGruposOpcionalNueva(
-    //   grupos,
-    //   dto.cursosAntiguosMarcados,
-    //   resultado,
-    //   resultadosParaGuardar,
-    //   cursosAntiguosUtilizados,
-    //   dto,
-    // );
+    // FASE 2: Procesar equivalencias OPCIONAL_NUEVA (prioridad baja)
+    for (const cursoNuevo of cursosNuevos) {
+      const cursoId = cursoNuevo.id.toString();
+
+      // Si ya fue procesado en la Fase 1, saltarlo
+      if (resultado[cursoId]) {
+        continue;
+      }
+
+      // Buscar grupos OPCIONAL_NUEVA que contengan este curso nuevo
+      const gruposOpcionalNueva = grupos.filter(
+        (grupo) =>
+          grupo.tipo === TipoEquivalencia.OPCIONAL_NUEVA &&
+          grupo.items.some(
+            (item) =>
+              item.cursoId === cursoNuevo.id &&
+              item.lado === LadoEquivalencia.NUEVA,
+          ),
+      );
+
+      if (gruposOpcionalNueva.length === 0) {
+        continue; // Se procesará en la fase 3
+      }
+
+      // Evaluar grupos OPCIONAL_NUEVA
+      let mejorEvaluacion: any = null;
+      let mejorGrupo: EquivalenciaGrupo | null = null;
+
+      for (const grupo of gruposOpcionalNueva) {
+        const evaluacionResultado = this.evaluarEquivalenciaSegunTipo(
+          grupo,
+          dto.cursosAntiguosMarcados,
+          cursosAntiguosUtilizados,
+        );
+
+        // Si encontramos una homologación exitosa, la usamos
+        if (evaluacionResultado.esHomologado) {
+          mejorEvaluacion = evaluacionResultado;
+          mejorGrupo = grupo;
+          break; // Usar la primera homologación exitosa
+        }
+
+        // Si no hay homologación exitosa pero es la primera evaluación, la guardamos como respaldo
+        if (!mejorEvaluacion) {
+          mejorEvaluacion = evaluacionResultado;
+          mejorGrupo = grupo;
+        }
+      }
+
+      // Procesar la evaluación del grupo OPCIONAL_NUEVA
+      if (mejorEvaluacion && mejorGrupo) {
+        if (mejorEvaluacion.esHomologado) {
+          // Marcar cursos antiguos como utilizados
+          mejorEvaluacion.cursosAntiguosPresentes.forEach((cursoId) =>
+            cursosAntiguosUtilizados.add(cursoId),
+          );
+
+          // Curso completamente homologado
+          const cursosNombres = await this.obtenerNombresCursos(
+            mejorEvaluacion.cursosAntiguosPresentes,
+          );
+          resultado[cursoId] = {
+            estado: 'HOMOLOGADO',
+            observacion: `Homologado por: ${cursosNombres.join(', ')} (equivalencia flexible).`,
+            cursoNuevo: {
+              id: cursoNuevo.id,
+              nombre: cursoNuevo.nombre,
+              creditos: cursoNuevo.creditos,
+              semestre: cursoNuevo.semestre,
+            },
+            grupoId: mejorGrupo.id,
+            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
+            cursosAntiguosFaltantes: [],
+          };
+          homologados++;
+
+          // Guardar resultado en BD
+          resultadosParaGuardar.push({
+            estudianteId: dto.estudianteId,
+            mallaAntiguaId: dto.mallaAntiguaId,
+            mallaNuevaId: dto.mallaNuevaId,
+            cursoNuevoId: cursoNuevo.id,
+            estado: EstadoHomologacion.HOMOLOGADO,
+            observacion: `Homologado por: ${cursosNombres.join(', ')} (equivalencia flexible).`,
+            grupoId: mejorGrupo.id,
+            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
+            cursosAntiguosFaltantes: [],
+            cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
+          });
+        } else {
+          // Curso incompleto
+          const cursosVistos = await this.obtenerNombresCursos(
+            mejorEvaluacion.cursosAntiguosPresentes,
+          );
+          const cursosFaltantes = await this.obtenerNombresCursos(
+            mejorEvaluacion.cursosAntiguosFaltantes,
+          );
+
+          let observacion = mejorEvaluacion.observacion || '';
+          if (!observacion) {
+            if (cursosVistos.length > 0) {
+              observacion += `Tienes: ${cursosVistos.join(', ')}. `;
+            }
+            observacion += `Te falta: ${cursosFaltantes.join(', ')}.`;
+          }
+
+          resultado[cursoId] = {
+            estado: 'INCOMPLETO',
+            observacion,
+            cursoNuevo: {
+              id: cursoNuevo.id,
+              nombre: cursoNuevo.nombre,
+              creditos: cursoNuevo.creditos,
+              semestre: cursoNuevo.semestre,
+            },
+            grupoId: mejorGrupo.id,
+            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
+            cursosAntiguosFaltantes: mejorEvaluacion.cursosAntiguosFaltantes,
+          };
+          incompletos++;
+
+          // Guardar resultado en BD
+          resultadosParaGuardar.push({
+            estudianteId: dto.estudianteId,
+            mallaAntiguaId: dto.mallaAntiguaId,
+            mallaNuevaId: dto.mallaNuevaId,
+            cursoNuevoId: cursoNuevo.id,
+            estado: EstadoHomologacion.INCOMPLETO,
+            observacion,
+            grupoId: mejorGrupo.id,
+            cursosAntiguosPresentes: mejorEvaluacion.cursosAntiguosPresentes,
+            cursosAntiguosFaltantes: mejorEvaluacion.cursosAntiguosFaltantes,
+            cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
+          });
+        }
+      }
+    }
 
     // FASE 3: Procesar cursos sin equivalencias definidas
     for (const cursoNuevo of cursosNuevos) {
@@ -655,28 +801,6 @@ export class EquivalenciasService {
     return count > 0;
   }
 
-  /**
-   * Verifica si un estudiante tiene equivalencias para una combinación específica de mallas
-   * @param estudianteId ID del estudiante
-   * @param mallaAntiguaId ID de la malla antigua
-   * @param mallaNuevaId ID de la malla nueva
-   * @returns boolean - true si tiene equivalencias para esas mallas, false si no
-   */
-  async estudianteTieneEquivalenciasParaMallas(
-    estudianteId: number,
-    mallaAntiguaId: number,
-    mallaNuevaId: number,
-  ): Promise<boolean> {
-    const count = await this.resultadoHomologacionRepository.count({
-      where: {
-        estudianteId,
-        mallaAntiguaId,
-        mallaNuevaId,
-      },
-    });
-    return count > 0;
-  }
-
   findEquivalenciasByEstudiante(
     estudianteId: number,
   ): Promise<ResultadoHomologacion[]> {
@@ -856,6 +980,73 @@ export class EquivalenciasService {
           cursosAntiguosFaltantes,
         };
     }
+  }
+
+  /**
+   * Obtiene la prioridad numérica de un tipo de equivalencia para ordenamiento
+   * Menor número = mayor prioridad
+   */
+  private obtenerPrioridadTipo(tipo: TipoEquivalencia): number {
+    switch (tipo) {
+      case TipoEquivalencia.COMPLETA:
+        return 1; // Máxima prioridad
+      case TipoEquivalencia.OPCIONAL_ANTIGUA:
+        return 2; // Prioridad media
+      case TipoEquivalencia.OPCIONAL_NUEVA:
+        return 3; // Mínima prioridad
+      default:
+        return 999; // Desconocido, menor prioridad
+    }
+  }
+
+  /**
+   * Verifica si un estudiante tiene equivalencias previas para la combinación de mallas especificada
+   */
+  async estudianteTieneEquivalenciasParaMallas(
+    estudianteId: number,
+    mallaAntiguaId: number,
+    mallaNuevaId: number,
+  ): Promise<boolean> {
+    const count = await this.resultadoHomologacionRepository.count({
+      where: {
+        estudianteId,
+        mallaAntiguaId,
+        mallaNuevaId,
+      },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Método para actualizar/repetir las equivalencias de un estudiante
+   * Permite al estudiante seleccionar nuevamente los cursos y recalcular equivalencias
+   */
+  async actualizarEquivalenciasEstudiante(
+    dto: EvaluarEquivalenciasDto,
+  ): Promise<EvaluacionResultado> {
+    // Verificar que el estudiante tenga equivalencias previas
+    const tieneEquivalenciasPrevias =
+      await this.estudianteTieneEquivalenciasParaMallas(
+        dto.estudianteId,
+        dto.mallaAntiguaId,
+        dto.mallaNuevaId,
+      );
+
+    if (!tieneEquivalenciasPrevias) {
+      throw new NotFoundException(
+        'No se encontraron equivalencias previas para este estudiante en la combinación de mallas especificada',
+      );
+    }
+
+    // Eliminar equivalencias anteriores para permitir la actualización
+    await this.resultadoHomologacionRepository.delete({
+      estudianteId: dto.estudianteId,
+      mallaAntiguaId: dto.mallaAntiguaId,
+      mallaNuevaId: dto.mallaNuevaId,
+    });
+
+    // Recalcular equivalencias con la nueva selección de cursos
+    return this.evaluarEquivalencias(dto);
   }
 }
 

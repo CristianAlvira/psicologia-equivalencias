@@ -1,7 +1,8 @@
 import { Transform, Type } from 'class-transformer';
-import { IsOptional } from 'class-validator';
+import { IsOptional, IsEnum } from 'class-validator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { RolesDbValues } from '@/common/enums/roles.enum';
 
 export class FilterUsuariosQueryDto extends PaginationDto {
   @ApiProperty({
@@ -54,4 +55,17 @@ export class FilterUsuariosQueryDto extends PaginationDto {
   })
   @Type(() => Boolean)
   tiene_equivalencias?: boolean;
+
+  @ApiProperty({
+    example: RolesDbValues.ESTUDIANTE,
+    required: false,
+    description: 'Filtrar por rol del usuario',
+    enum: RolesDbValues,
+  })
+  @IsOptional()
+  @IsEnum(RolesDbValues, {
+    message:
+      'El rol debe ser uno de los valores válidos: administrador, estudiante',
+  })
+  rol?: RolesDbValues;
 }

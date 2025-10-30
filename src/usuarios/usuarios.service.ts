@@ -169,11 +169,13 @@ export class UsuariosService {
       estudiante,
       codigo_estudiantil,
       tiene_equivalencias,
+      rol,
     } = filterDto;
     const skip = offset;
 
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
+      .leftJoinAndSelect('usuario.rol', 'rol')
       .skip(skip);
 
     if (limit !== -1) {
@@ -195,6 +197,10 @@ export class UsuariosService {
           codigo_estudiantil: `%${codigo_estudiantil}%`,
         },
       );
+    }
+
+    if (rol) {
+      queryBuilder.andWhere('rol.nombre = :rol', { rol });
     }
 
     // Siempre hacer LEFT JOIN para obtener información de equivalencias
@@ -223,6 +229,12 @@ export class UsuariosService {
     // Obtener el total sin filtros de equivalencias para el conteo correcto
     const totalQueryBuilder =
       this.usuarioRepository.createQueryBuilder('usuario');
+
+    if (rol) {
+      totalQueryBuilder
+        .leftJoin('usuario.rol', 'rol')
+        .andWhere('rol.nombre = :rol', { rol });
+    }
 
     if (estado !== undefined) {
       totalQueryBuilder.andWhere('usuario.estado = :estado', { estado });

@@ -200,7 +200,7 @@ export class UsuariosService {
     }
 
     if (rol) {
-      queryBuilder.andWhere('roles.nombre = :rol', { rol });
+      queryBuilder.andWhere('roles.nombre_rol = :rol', { rol });
     }
 
     // Siempre hacer LEFT JOIN para obtener información de equivalencias
@@ -233,7 +233,7 @@ export class UsuariosService {
     if (rol) {
       totalQueryBuilder
         .leftJoin('usuario.roles', 'roles')
-        .andWhere('roles.nombre = :rol', { rol });
+        .andWhere('roles.nombre_rol = :rol', { rol });
     }
 
     if (estado !== undefined) {

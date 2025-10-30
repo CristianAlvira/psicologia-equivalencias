@@ -34,8 +34,7 @@ import { EquivalenciasModule } from './equivalencias/equivalencias.module';
       synchronize: false,
       migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
       logging: process.env.NODE_ENV === 'dev' ? true : ['error'],
-      ssl:
-        process.env.NODE_ENV === 'prod' ? { rejectUnauthorized: false } : false,
+      ssl: false,
     }),
 
     UsuariosModule,

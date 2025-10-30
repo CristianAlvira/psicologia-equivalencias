@@ -212,7 +212,7 @@ export class UsuariosService {
       )
       .addSelect('COUNT(DISTINCT rh_info.id) as equivalencias_count')
       .groupBy(
-        'usuario.id, usuario.nombres, usuario.apellidos, usuario.email, usuario.estado, usuario.codigo_estudiantil, usuario.created_at, usuario.updated_at',
+        'usuario.id, usuario.nombres, usuario.apellidos, usuario.email, usuario.estado, usuario.codigo_estudiantil, usuario.created_at, usuario.updated_at, roles.id, roles.nombre_rol, roles.descripcion_rol, roles.created_at, roles.updated_at',
       );
 
     if (tiene_equivalencias !== undefined) {

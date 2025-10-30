@@ -175,7 +175,7 @@ export class UsuariosService {
 
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
-      .leftJoinAndSelect('usuario.rol', 'rol')
+      .leftJoinAndSelect('usuario.roles', 'roles')
       .skip(skip);
 
     if (limit !== -1) {
@@ -200,7 +200,7 @@ export class UsuariosService {
     }
 
     if (rol) {
-      queryBuilder.andWhere('rol.nombre = :rol', { rol });
+      queryBuilder.andWhere('roles.nombre = :rol', { rol });
     }
 
     // Siempre hacer LEFT JOIN para obtener información de equivalencias
@@ -232,8 +232,8 @@ export class UsuariosService {
 
     if (rol) {
       totalQueryBuilder
-        .leftJoin('usuario.rol', 'rol')
-        .andWhere('rol.nombre = :rol', { rol });
+        .leftJoin('usuario.roles', 'roles')
+        .andWhere('roles.nombre = :rol', { rol });
     }
 
     if (estado !== undefined) {

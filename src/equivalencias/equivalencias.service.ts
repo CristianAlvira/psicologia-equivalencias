@@ -251,7 +251,7 @@ export class EquivalenciasService {
           cursosAntiguosSeleccionados: dto.cursosAntiguosMarcados,
         });
       } else {
-        // Curso parcialmente completo
+        // Curso incompleto o sin cursos disponibles
         const cursosVistos = await this.obtenerNombresCursos(
           evaluacionResultado.cursosAntiguosPresentes,
         );
@@ -264,7 +264,9 @@ export class EquivalenciasService {
           if (cursosVistos.length > 0) {
             observacion += `Tienes: ${cursosVistos.join(', ')}. `;
           }
-          observacion += `Te falta: ${cursosFaltantes.join(', ')}.`;
+          if (cursosFaltantes.length > 0) {
+            observacion += `Te falta: ${cursosFaltantes.join(', ')}.`;
+          }
         }
 
         resultado[cursoId] = {

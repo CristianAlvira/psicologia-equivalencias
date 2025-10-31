@@ -169,11 +169,13 @@ export class UsuariosService {
       estudiante,
       codigo_estudiantil,
       tiene_equivalencias,
+      rol_id,
     } = filterDto;
     const skip = offset;
 
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
+      .leftJoinAndSelect('usuario.roles', 'roles')
       .skip(skip);
 
     if (limit !== -1) {
@@ -197,6 +199,11 @@ export class UsuariosService {
       );
     }
 
+    // Filtro por rol
+    if (rol_id !== undefined) {
+      queryBuilder.andWhere('roles.id = :rol_id', { rol_id });
+    }
+
     // Siempre hacer LEFT JOIN para obtener información de equivalencias
     queryBuilder
       .leftJoin(
@@ -206,7 +213,7 @@ export class UsuariosService {
       )
       .addSelect('COUNT(DISTINCT rh_info.id) as equivalencias_count')
       .groupBy(
-        'usuario.id, usuario.nombres, usuario.apellidos, usuario.email, usuario.estado, usuario.codigo_estudiantil, usuario.created_at, usuario.updated_at',
+        'usuario.id, usuario.nombres, usuario.apellidos, usuario.email, usuario.estado, usuario.codigo_estudiantil, usuario.created_at, usuario.updated_at, roles.id, roles.nombre_rol, roles.descripcion_rol, roles.created_at, roles.updated_at',
       );
 
     if (tiene_equivalencias !== undefined) {
@@ -239,6 +246,13 @@ export class UsuariosService {
           codigo_estudiantil: `%${codigo_estudiantil}%`,
         },
       );
+    }
+
+    // Filtro por rol en el conteo total
+    if (rol_id !== undefined) {
+      totalQueryBuilder
+        .leftJoin('usuario.roles', 'roles_total')
+        .andWhere('roles_total.id = :rol_id', { rol_id });
     }
 
     const total = await totalQueryBuilder.getCount();

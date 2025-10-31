@@ -54,4 +54,13 @@ export class FilterUsuariosQueryDto extends PaginationDto {
   })
   @Type(() => Boolean)
   tiene_equivalencias?: boolean;
+
+  @ApiProperty({
+    example: 1,
+    required: false,
+    description: 'Filtrar por ID de rol',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  rol_id?: number;
 }

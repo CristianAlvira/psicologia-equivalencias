@@ -117,7 +117,7 @@ export class UsuariosService {
 
     // Buscar el rol de estudiante por defecto (ID 2)
     const rolEstudiante = await this.rolRepository.findOne({
-      where: { id: 2 },
+      where: { id: 3 },
     });
 
     const estudianteData = {

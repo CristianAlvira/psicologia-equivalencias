@@ -55,11 +55,11 @@ export class CreateUsuarioDto {
 
   @ApiProperty({ example: '1234567890' })
   @IsString({ message: 'El codigo estudiantil debe ser un texto' })
-  @IsNotEmpty({ message: 'El codigo estudiantil es obligatorio' })
+  @IsOptional()
   @MaxLength(50, {
     message: 'El codigo estudiantil no puede superar los 50 caracteres',
   })
-  codigo_estudiantil: string;
+  codigo_estudiantil?: string;
 
   @ApiProperty({ isArray: true, example: [1] })
   @IsArray({ message: 'Los roles deben ser un arreglo' })
